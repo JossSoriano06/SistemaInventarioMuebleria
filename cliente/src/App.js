@@ -3,7 +3,7 @@ import ProductoPage from './Producto';
 import ClientePage from './ClientePage'; 
 import './App.css'; 
 
-// === COMPONENTE HEADER MÓVIL ===
+// header para movil
 const Header = () => (
   <header className="fixed top-0 left-0 right-0 bg-slate-900 text-white h-16 px-4 flex items-center justify-between z-50 shadow-lg">
     <div className="flex items-center gap-3">
@@ -27,7 +27,7 @@ const Header = () => (
   </header>
 );
 
-// === COMPONENTE FOOTER MÓVIL (NAVBAR) ===
+// footer para movil
 const MobileFooter = () => {
   const location = useLocation();
   
@@ -67,15 +67,13 @@ const MobileFooter = () => {
 
 const Inicio = () => (
   <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
-    <div className="bg-indigo-100 p-4 rounded-3xl mb-6">
-       <span className="text-4xl">🏠</span>
-    </div>
+    
     <h1 className="text-4xl font-black text-slate-900 leading-tight mb-4">
       Bienvenido a <br/>
       <span className="text-indigo-600">El Márquez</span>
     </h1>
     <p className="text-slate-500 text-lg mb-8">
-      Gestión de inventario y ventas en tiempo real.
+      Gestión de inventario y ventas al por manor y menor.
     </p>
     <Link to="/clientes" className="w-full max-w-xs bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition active:scale-95">
       INICIAR VENTA

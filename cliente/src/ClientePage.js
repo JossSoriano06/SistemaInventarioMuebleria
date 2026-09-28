@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { MdReceipt } from 'react-icons/md';
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3004';
+const BASE_URL = 'http://localhost:3004';
 
 const API_URL_CLIENTES = `${BASE_URL}/api/clientes`;
 const API_URL_PRODUCTOS = `${BASE_URL}/api/productos`;
@@ -282,7 +283,7 @@ const handleRegistrarAbono = async (monto) => {
     setView('LISTA_CLIENTES');
 };
 
-    // ================= VISTAS =================
+    
 
     if (view === 'LISTA_CLIENTES') {
         return (
@@ -401,7 +402,7 @@ const handleRegistrarAbono = async (monto) => {
       </select>
     </div>
 
-    {/* Color */}
+    
     <div className="flex flex-col gap-1">
       <label className="text-xs font-bold text-gray-500 uppercase ml-1">Color</label>
       <select 
@@ -425,7 +426,7 @@ const handleRegistrarAbono = async (monto) => {
       </select>
     </div>
 
-    {/* Precio */}
+ 
     <div className="flex flex-col gap-1">
       <label className="text-xs font-bold text-gray-500 uppercase ml-1">Precio</label>
       <div className="relative">
@@ -439,7 +440,7 @@ const handleRegistrarAbono = async (monto) => {
       </div>
     </div>
 
-    {/* Cantidad */}
+    
     <div className="flex flex-col gap-1">
       <label className="text-xs font-bold text-gray-500 uppercase ml-1">Cant.</label>
       <input 
@@ -450,7 +451,7 @@ const handleRegistrarAbono = async (monto) => {
       />
     </div>
 
-    {/* Botón - En móvil ocupa todo el ancho, en PC se alinea al final */}
+    
     <button 
       onClick={agregarAlCarrito}
       className="w-full lg:w-full h-[46px] bg-green-600 hover:bg-green-700 active:scale-[0.98] text-white font-bold rounded-lg shadow-md shadow-green-100 transition-all flex items-center justify-center gap-2 mt-2 lg:mt-0"
@@ -503,7 +504,7 @@ const handleRegistrarAbono = async (monto) => {
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         
-        {/* Resumen de totales */}
+        
         <div>
             <p className="text-gray-600">Total a pagar:</p>
             <p className="text-2xl font-bold text-indigo-700 font-mono">
@@ -511,7 +512,7 @@ const handleRegistrarAbono = async (monto) => {
             </p>
         </div>
 
-        {/* Campo de Pago Inicial */}
+        
         <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">
                 Pago Inicial (Acuenta):
@@ -576,8 +577,8 @@ const handleRegistrarAbono = async (monto) => {
             <div className="space-y-3">
                 <button
     onClick={() => {
-        // Usamos la URL completa a tu backend en Render
-        const urlBoleta = `https://muebleria-backend-9kfb.onrender.com/api/clientes/ventas/${lastVentaId}/boleta`;
+        // url de la boleta, usando el ID de la última venta
+        const urlBoleta = `http://localhost:3004/api/clientes/ventas/${lastVentaId}/boleta`;
         
         window.open(urlBoleta, '_blank');
         
@@ -744,19 +745,20 @@ const handleRegistrarAbono = async (monto) => {
 )}
             
        
-                        {/* BOTÓN DE BOLETA */}
+                        
             <div className="mt-6 flex justify-end">
                 <button
-                    onClick={() =>
-                        window.open(
-                            `${BASE_URL}/api/clientes/ventas/${selectedSale.id_venta}/boleta`,
-                '_blank'
-                        )
-                    }
-                    className="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700"
-                >
-                    🧾 Generar Boleta
-                </button>
+    onClick={() =>
+        window.open(
+            `${BASE_URL}/api/clientes/ventas/${selectedSale.id_venta}/boleta`,
+            '_blank'
+        )
+    }
+    className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+>
+    <MdReceipt size={20} />
+    Generar Boleta
+</button>
             </div>
               
             </div>

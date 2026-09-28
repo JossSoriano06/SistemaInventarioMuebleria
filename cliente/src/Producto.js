@@ -1,10 +1,9 @@
-// ./frontend/src/Producto.jsx
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { MdEdit, MdAddBox, MdInventory } from 'react-icons/md';
 
-const API_URL = 'https://muebleria-backend-9kfb.onrender.com/api/productos';
-//const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3004/api/productos';
+
+const API_URL = 'http://localhost:3004/api/productos';
 function Producto() {
     const [productos, setProductos] = useState([]); 
     const [formData, setFormData] = useState({ 
@@ -107,10 +106,18 @@ function Producto() {
                 Gestión de Muebles 
             </h1>
             
-            {/* Formulario de Creación/Edición */}
+            
             <div className="bg-white shadow-lg rounded-xl p-6 mb-8 border border-gray-200">
-                <h2 className="text-2xl font-semibold text-indigo-700 mb-4">
-                    {isEditing ? '✏️ Editar Producto' : '➕ Registrar Nuevo Producto'}
+                <h2 className="text-2xl font-semibold text-indigo-700 mb-4 items-center flex space-x-4">
+                    {isEditing ? (
+                    <>
+                        <MdEdit size={28} />Editar Producto
+                    </>
+                ) : (
+                    <>
+                        <MdAddBox size={28} />Registrar Nuevo Producto
+                    </>
+                )}
                 </h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,10 +156,16 @@ function Producto() {
                 </form>
             </div>
 
-            {/* Listado de Productos */}
+
+
+          
             <div className="bg-white shadow-lg rounded-xl p-6 border border-gray-200">
-                <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-                    📋 CANTIDAD DE MUEBLES {productos.length}
+                <h3 className="text-2xl font-semibold text-gray-800 mb-4 items-center flex space-x-4">
+                    
+                        <> 
+                        < MdInventory size={28} />CANTIDAD DE MUEBLES {productos.length}
+                        </>
+                    
                 </h3>
 
                 {loading && <p className="text-center text-indigo-600">Cargando inventario...</p>}
