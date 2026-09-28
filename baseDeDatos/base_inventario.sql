@@ -75,3 +75,16 @@ INSERT INTO boleta_serie (serie, correlativo) VALUES ('B001', 0);
 UPDATE boleta_serie 
 SET serie = 'NV001'
 WHERE id = 1;
+
+CREATE TABLE usuarios (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_usuario VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    nombre_completo VARCHAR(100) NOT NULL,
+    rol VARCHAR(30) NOT NULL DEFAULT 'ADMIN'
+);
+
+INSERT INTO usuarios
+(nombre_usuario, password, nombre_completo, rol)
+VALUES
+('admin', '$2b$10$tzlbBRnH0QNWZ62tSoUZyepY0z.96biWVn5cg/7kHUIwOFowEeB6a', 'Administrador El Márquez', 'ADMIN');
