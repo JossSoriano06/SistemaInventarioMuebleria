@@ -3,7 +3,7 @@ const express = require('express');
 module.exports = function (db) {
   const router = express.Router();
 
-  // GET
+  // obtener datos
   router.get('/', async (req, res) => {
     try {
       const [rows] = await db.query(`

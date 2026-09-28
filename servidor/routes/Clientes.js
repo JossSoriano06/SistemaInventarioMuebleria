@@ -5,9 +5,7 @@ const path = require('path');
 module.exports = function (db) {
     const router = express.Router();
 
-    // =========================
-    // OBTENER CLIENTES
-    // =========================
+    // obtener cliente
     router.get('/', async (req, res) => {
         try {
             const [rows] = await db.query(`
@@ -23,9 +21,7 @@ module.exports = function (db) {
     });
     
 
-    // =========================
-    // CREAR CLIENTE
-    // =========================
+    // crear nuevo cliente
     router.post('/', async (req, res) => {
         const { nombre_cliente, apellido_cliente, referencia_cliente } = req.body;
 
@@ -45,17 +41,17 @@ module.exports = function (db) {
         }
     });
 
-    // =========================
-    // ELIMINAR CLIENTE
+    
+    // eliminar cliente
     
     router.delete('/:id', async (req, res) => {
         const { id } = req.params;
 
         try {
-            // 1. Desactivar temporalmente la revisión de llaves foráneas
+            // Desactivar la revisión de llaves foráneas temporalmente
             await db.query('SET FOREIGN_KEY_CHECKS = 0');
 
-            // 2. Borrar los detalles de ventas vinculados a las ventas de este cliente
+            // Borrar los detalles de ventas vinculados a las ventas de este cliente
             // Usamos un JOIN para identificar qué detalles pertenecen a las ventas del cliente
             await db.query(`
                 DELETE dv FROM detalle_ventas dv
@@ -63,13 +59,13 @@ module.exports = function (db) {
                 WHERE v.id_cliente = ?
             `, [id]);
 
-            // 3. Borrar las ventas del cliente
+            // Borrar las ventas del cliente
             await db.query('DELETE FROM ventas WHERE id_cliente = ?', [id]);
 
-            // 4. Borrar al cliente (usando id_clientes como en tu tabla)
+            // Borrar al cliente (usando id_clientes como en tu tabla)
             const [result] = await db.query('DELETE FROM clientes WHERE id_clientes = ?', [id]);
 
-            // 5. Reactivar la revisión de llaves foráneas
+            //Reactivar la revisión de llaves foráneas
             await db.query('SET FOREIGN_KEY_CHECKS = 1');
 
             if (result.affectedRows === 0) {
@@ -79,16 +75,14 @@ module.exports = function (db) {
             res.json({ message: "Cliente y todo su historial eliminados correctamente" });
 
         } catch (error) {
-            // Importante: Reactivar la revisión incluso si hay error
+            // Reactivar la revisión incluso si hay error
             await db.query('SET FOREIGN_KEY_CHECKS = 1');
             console.error("Error al eliminar cliente:", error);
             res.status(500).json({ error: "Error interno del servidor", detalle: error.message });
         }
     });
 
-    // =========================
-    // OBTENER VENTAS POR CLIENTE
-    // =========================
+    // ventas por cliente
     router.get('/:id/ventas', async (req, res) => {
         try {
             const [rows] = await db.query(`
@@ -105,9 +99,7 @@ module.exports = function (db) {
         }
     });
 
-    // =========================
-    // DETALLE DE VENTA
-    // =========================
+    // detalle de la venta
     router.get('/ventas/:id/detalle', async (req, res) => {
         try {
             const [rows] = await db.query(`
@@ -130,9 +122,7 @@ module.exports = function (db) {
     });
 
 
-    // =========================
-    // CREAR VENTA 
-    // =========================
+    // crea una nueva venta para un cliente específico
     router.post('/:id/ventas', async (req, res) => {
     const id_cliente = req.params.id;
     const { productos, pago_inicial } = req.body;
@@ -207,7 +197,7 @@ router.post('/ventas/:id_venta/abono', async (req, res) => {
     try {
         await db.beginTransaction();
 
-        // 1. Obtener datos actuales de la venta
+        // Obtener datos actuales de la venta
         const [venta] = await db.query(
             'SELECT total_venta, pago_acumulado FROM ventas WHERE id_venta = ?',
             [id_venta]
@@ -219,18 +209,18 @@ router.post('/ventas/:id_venta/abono', async (req, res) => {
         const pagoActual = Number(venta[0].pago_acumulado);
         const nuevoPagoAcumulado = pagoActual + Number(monto_abono);
 
-        // 2. Validar que no pague de más
+        // Validar que no pague de más
         if (nuevoPagoAcumulado > totalVenta) {
             return res.status(400).json({ message: "El abono supera el saldo pendiente" });
         }
 
-        // 3. Registrar el abono en la tabla 'abonos'
+        // Registrar el abono en la tabla 'abonos'
         await db.query(
             'INSERT INTO abonos (id_venta, monto_abono) VALUES (?, ?)',
             [id_venta, monto_abono]
         );
 
-        // 4. Actualizar el pago acumulado y estado en la tabla 'ventas'
+        // Actualizar el pago acumulado y estado en la tabla 'ventas'
         const nuevoEstado = (nuevoPagoAcumulado === totalVenta) ? 'cancelado' : 'pendiente';
         await db.query(
             'UPDATE ventas SET pago_acumulado = ?, estado_pago = ? WHERE id_venta = ?',
@@ -247,25 +237,25 @@ router.post('/ventas/:id_venta/abono', async (req, res) => {
 });
 
  //para la actuzliacion del pago
- // PUT /api/ventas/:id/abonar
+ 
 router.put('/:id/abonar', async (req, res) => {
     const { id } = req.params;
     const { monto_abono } = req.body;
 
     try {
-        // 1. Obtener la venta actual
+        // Obtener la venta actual
         const [rows] = await db.query('SELECT total_venta, pago_acumulado FROM ventas WHERE id_venta = ?', [id]);
         if (rows.length === 0) return res.status(404).send('Venta no encontrada');
 
         const { total_venta, pago_acumulado } = rows[0];
         const nuevo_total_pago = Number(pago_acumulado) + Number(monto_abono);
 
-        // 2. Validar que no sobrepase el total
+        // Validar que no sobrepase el total
         if (nuevo_total_pago > total_venta) {
             return res.status(400).send('El abono sobrepasa el total de la venta');
         }
 
-        // 3. Actualizar
+        // Actualizar
         const nuevo_estado = (nuevo_total_pago === Number(total_venta)) ? 'cancelado' : 'pendiente';
         
         await db.query(
@@ -303,13 +293,13 @@ router.get('/ventas/:id/pagos', async (req, res) => {
 });
 
 router.get('/ventas/:id/boleta', async (req, res) => {
-    // 1. Declaramos el documento fuera para poder cerrarlo en el catch si es necesario
+    //Declaramos el documento fuera para poder cerrarlo en el catch si es necesario
     const doc = new PDFDocument({ size: 'A4', margin: 40 });
 
     try {
         const id_venta = req.params.id;
 
-        // 2. OBTENER DATOS (Importante: hacerlo con await antes del pipe)
+        // OBTENER DATOS
         const [ventaRows] = await db.query(`
             SELECT v.*, c.nombre_cliente, c.apellido_cliente 
             FROM ventas v 
@@ -334,12 +324,12 @@ router.get('/ventas/:id/boleta', async (req, res) => {
             year: 'numeric', month: '2-digit', day: '2-digit'
         });
 
-        // 3. CONFIGURAR RESPUESTA
+        // CONFIGURAR RESPUESTA
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename=${numeroBoleta}.pdf`);
         doc.pipe(res);
 
-        // ===== DISEÑO DEL PDF =====
+        // diseño de la boleta 
         
         // Logo (con protección por si no existe en el servidor)
         try {
