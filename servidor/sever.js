@@ -1,7 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+
+const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
 
@@ -41,11 +44,14 @@ let db;
 
     console.log('Conexión a la base de datos exitosa.');
 
+    const authRoutes = require('./routes/Auth')(db);
+    app.use('/api/auth', authRoutes);
+
     const productoRoutes = require('./routes/Productos')(db);
-    app.use('/api/productos', productoRoutes);
+    app.use('/api/productos', authMiddleware, productoRoutes);
 
     const clientesRoutes = require('./routes/Clientes')(db);
-    app.use('/api/clientes', clientesRoutes);
+    app.use('/api/clientes', authMiddleware, clientesRoutes);
 
     app.get('/', (req, res) => {
       res.send('API de Mueblería funcionando correctamente.');
