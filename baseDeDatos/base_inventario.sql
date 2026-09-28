@@ -1,73 +1,66 @@
-create database muebles;
-use muebles;
-create table clientes (
-	id_clientes int primary key auto_increment,
+create database bd_muebles;
+
+use bd_muebles;
+CREATE TABLE clientes (
+    id_clientes int primary key auto_increment,
     nombre_cliente varchar(100) not null,
     apellido_cliente varchar(100) not null
-    );
-    
-create table productos (
-	id_producto int primary key auto_increment,
+);
+alter table clientes
+add referencia_cliente varchar(100) not null;
+
+
+CREATE TABLE productos (
+    id_producto int primary key auto_increment,
     nombre_producto varchar(100) not null,
     descripcion_producto varchar (100) not null,
-	precio_producto decimal(10, 2) not null
+    precio_producto decimal(10, 2) not null
 );
 
-create table ventas (
-	id_venta int primary key auto_increment,
+CREATE TABLE ventas (
+    id_venta int primary key auto_increment,
     fecha_vente date not null,
     total_venta decimal(10,2) not null,
     id_cliente int,
     foreign key (id_cliente) references clientes(id_clientes)
 );
+use bd_muebles;
+select *from ventas;
+use bd_muebles;
+ALTER TABLE ventas 
+ADD COLUMN pago_acumulado DECIMAL(10,2) DEFAULT 0.00,
+ADD COLUMN estado_pago ENUM('pendiente', 'cancelado') DEFAULT 'pendiente';
 
-
-
-create table colores (
-colore varchar(100)
+CREATE TABLE abonos (
+    id_abono INT AUTO_INCREMENT PRIMARY KEY,
+    id_venta INT NOT NULL,
+    monto_abono DECIMAL(10,2) NOT NULL,
+    fecha_abono TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_venta) REFERENCES ventas(id_venta) ON DELETE CASCADE
 );
-TRUNCATE TABLE colores;
 
-INSERT INTO colores (color) VALUES
-('Iviza'),
-('Rojo'),
-('Azul'),
-('Verde'),
-('Amarillo');
+CREATE TABLE colores (
+    color varchar(100)
+);
 
-INSERT INTO colores (color) VALUES
-('Iviza'),
-('Chantilly'),
-('Humo'),
-('Wenge'),
-('Cedro'),
-('Lila'),
-('Rosado'),
-('Arena'),
-('Light Sonoma'),
-('Caramelo'),
-('Blanco'),
-('Cedro');
-select * from colores;
+INSERT INTO colores (color) VALUES 
+('Iviza'), ('Chantilly'), ('Humo'), ('Wenge'), ('Cedro'), 
+('Lila'), ('Rosado'), ('Arena'), ('Light Sonoma'), ('Caramelo'), ('Blanco');
+USE bd_muebles;
+INSERT INTO colores (color) VALUES 
+('N/A');
 
-
-create table detalle_ventas (
-	id_detalle_venta int primary key auto_increment,
+CREATE TABLE detalle_ventas (
+    id_detalle_venta int primary key auto_increment,
     id_venta int,
     id_producto int,
+    color varchar(100) not null,
     cantidad_detalle_ventas_productos int not null,
     precio_detalle_ventas_productos decimal(10,2) not null,
     sub_total_detalle_ventas decimal (10,2) not null,
     foreign key (id_venta) references ventas (id_venta),
     foreign key (id_producto) references productos (id_producto)
 );
-ALTER TABLE colores CHANGE colore color VARCHAR(100);
-use muebles;
-select * from detalle_ventas;
- ALTER TABLE detalle_ventas DROP COLUMN colores;
- ALTER TABLE detalle_ventas
-ADD COLUMN color VARCHAR(100) NOT NULL
-AFTER id_producto;
 
 
 CREATE TABLE boleta_serie (
@@ -75,6 +68,10 @@ CREATE TABLE boleta_serie (
     serie VARCHAR(4) NOT NULL,
     correlativo INT NOT NULL
 );
+ALTER TABLE boleta_serie
+MODIFY serie VARCHAR(10) NOT NULL;
 
-INSERT INTO boleta_serie (serie, correlativo)
-VALUES ('B001', 0);
+INSERT INTO boleta_serie (serie, correlativo) VALUES ('B001', 0);
+UPDATE boleta_serie 
+SET serie = 'NV001'
+WHERE id = 1;
