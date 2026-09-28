@@ -283,6 +283,46 @@ const handleRegistrarAbono = async (monto) => {
     setView('LISTA_CLIENTES');
 };
 
+
+    const generarBoleta = async (idVenta) => {
+    const nuevaVentana = window.open('', '_blank');
+
+    if (!nuevaVentana) {
+        alert('El navegador bloqueó la ventana emergente.');
+        return;
+    }
+
+    try {
+        const response = await axios.get(
+            `${BASE_URL}/api/clientes/ventas/${idVenta}/boleta`,
+            {
+                responseType: 'blob'
+            }
+        );
+
+        const blob = new Blob([response.data], {
+            type: 'application/pdf'
+        });
+
+        const url = window.URL.createObjectURL(blob);
+
+        nuevaVentana.location.href = url;
+
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+        }, 60000);
+
+    } catch (error) {
+        console.error('Error al generar la boleta:', error);
+
+        nuevaVentana.close();
+
+        alert(
+            error.response?.data?.message ||
+            'No se pudo generar la boleta'
+        );
+    }
+};
     
 
     if (view === 'LISTA_CLIENTES') {
@@ -576,21 +616,17 @@ const handleRegistrarAbono = async (monto) => {
 
             <div className="space-y-3">
                 <button
-    onClick={() => {
-        // url de la boleta, usando el ID de la última venta
-        const urlBoleta = `http://localhost:3004/api/clientes/ventas/${lastVentaId}/boleta`;
-        
-        window.open(urlBoleta, '_blank');
-        
-        // Limpiamos y regresamos
-        setShowSuccessSnackbar(false);
-        setView('LISTA_CLIENTES');
-        setSelectedClient(null);
-    }}
-    className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700"
->
-    Generar Boleta PDF
-</button>
+                    onClick={() => {
+                        generarBoleta(lastVentaId);
+
+                        setShowSuccessSnackbar(false);
+                        setView('LISTA_CLIENTES');
+                        setSelectedClient(null);
+                    }}
+                    className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700"
+                >
+                    Generar Boleta PDF
+                </button>
 
                 <button
                     onClick={() => {
@@ -748,17 +784,12 @@ const handleRegistrarAbono = async (monto) => {
                         
             <div className="mt-6 flex justify-end">
                 <button
-    onClick={() =>
-        window.open(
-            `${BASE_URL}/api/clientes/ventas/${selectedSale.id_venta}/boleta`,
-            '_blank'
-        )
-    }
-    className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
->
-    <MdReceipt size={20} />
-    Generar Boleta
-</button>
+                    onClick={() => generarBoleta(selectedSale.id_venta)}
+                    className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                >
+                    <MdReceipt size={20} />
+                    Generar Boleta
+                </button>
             </div>
               
             </div>
