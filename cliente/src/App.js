@@ -7,6 +7,10 @@ import './App.css';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import StockPage from './pages/StockPage';
+import VentaMenor from './pages/VentaMenor';
+import VentasPage from './pages/VentasPage';
+import HistorialMenor from './pages/HistorialMenor';
 
 import {MdHome, MdInventory, MdPointOfSale} from 'react-icons/md';
 
@@ -132,9 +136,14 @@ const MobileFooter = () => {
       icon: MdInventory
     },
     {
-      path: '/clientes',
-      label: 'Vender',
-      icon: MdPointOfSale
+        path: '/stock',
+        label: 'Stock',
+        icon: MdInventory
+    },
+    {
+    path: '/ventas',
+    label: 'Ventas',
+    icon: MdPointOfSale
     }
   ];
 
@@ -199,10 +208,10 @@ const Inicio = () => (
     </p>
 
     <Link
-      to="/clientes"
-      className="w-full max-w-xs bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition active:scale-95"
+    to="/ventas"
+    className="w-full max-w-xs bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition active:scale-95"
     >
-      INICIAR VENTA
+    INICIAR VENTA
     </Link>
 
   </div>
@@ -265,6 +274,15 @@ function AppContent() {
 
             }
           />
+
+          <Route
+              path="/stock"
+              element={
+                  <ProtectedRoute>
+                      <StockPage />
+                  </ProtectedRoute>
+              }
+          />
           <Route
             path="/clientes"
             element={
@@ -276,6 +294,29 @@ function AppContent() {
               </ProtectedRoute>
 
             }
+          />
+
+          <Route
+              path="/historial-venta-menor"
+              element={<HistorialMenor />}
+          />
+
+          <Route
+              path="/venta-menor"
+              element={
+                  <ProtectedRoute>
+                      <VentaMenor />
+                  </ProtectedRoute>
+              }
+          />
+
+          <Route
+              path="/ventas"
+              element={
+                  <ProtectedRoute>
+                      <VentasPage />
+                  </ProtectedRoute>
+              }
           />
 
           <Route

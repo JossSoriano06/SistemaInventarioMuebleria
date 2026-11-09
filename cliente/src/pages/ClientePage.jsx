@@ -95,41 +95,122 @@ function ClientePage() {
         }
     }
     };
+
+    // Función para manejar la selección de un producto si es mayorista o minorista
     const handleSelectProducto = (e) => {
-        const id = parseInt(e.target.value);
-        const prod = productosDisponibles.find(p => p.id === id);
+    const id = parseInt(e.target.value);
+    const prod = productosDisponibles.find(p => p.id === id);
 
-        if (prod) {
-            setCurrentItem({
-                ...currentItem,
-                id_producto: prod.id,
-                precio: prod.precio_unitario
-            });
-        }
-    };
-
-    const agregarAlCarrito = () => {
-        if (!currentItem.id_producto) return alert('Seleccione un producto');
-        if (!currentItem.color) return alert('Seleccione un color');
-
-        const prod = productosDisponibles.find(p => p.id === currentItem.id_producto);
-
-        const item = {
+    if (prod) {
+        setCurrentItem({
+            ...currentItem,
             id_producto: prod.id,
-            nombre: prod.nombre,
-            color: currentItem.color,
-            cantidad: Number(currentItem.cantidad),
-            precio: Number(currentItem.precio),
-            subtotal: Number(currentItem.cantidad) * Number(currentItem.precio)
-        };
-
-        setCart([...cart, item]);
-        setCurrentItem({ id_producto: '',color: '', cantidad: 1, precio: '' });
+            precio: Number(
+                prod.precio_mayorista ??
+                prod.precio_unitario ??
+                prod.precio_minorista
+            )
+        });
+    }
     };
+
+    
+    const agregarAlCarrito = () => {
+    if (!currentItem.id_producto) {
+        return alert('Seleccione un producto');
+    }
+
+    if (!currentItem.color) {
+        return alert('Seleccione un color');
+    }
+
+    const prod = productosDisponibles.find(
+        p => p.id === currentItem.id_producto
+    );
+
+    if (!prod) {
+        return alert('Producto no encontrado');
+    }
+
+    const item = {
+        id_producto: prod.id,
+        nombre: prod.nombre,
+        color: currentItem.color,
+        cantidad: Number(currentItem.cantidad),
+
+        precio_minorista: Number(
+            prod.precio_minorista ??
+            prod.precio_unitario
+        ),
+
+        precio_mayorista: Number(
+            prod.precio_mayorista ??
+            prod.precio_unitario
+        ),
+
+        precio: Number(currentItem.precio),
+        subtotal: Number(currentItem.cantidad) *
+                  Number(currentItem.precio)
+    };
+
+    setCart(prevCart => {
+        const nuevoCarrito = [...prevCart, item];
+
+        const cantidadTotal = nuevoCarrito.reduce(
+            (total, producto) =>
+                total + Number(producto.cantidad),
+            0
+        );
+
+        const esMayorista = cantidadTotal >= 7;
+
+        return nuevoCarrito.map(producto => {
+            const precio = esMayorista
+                ? producto.precio_mayorista
+                : producto.precio_minorista;
+
+            return {
+                ...producto,
+                precio,
+                subtotal: Number(producto.cantidad) * precio
+            };
+        });
+    });
+
+    setCurrentItem({
+        id_producto: '',
+        color: '',
+        cantidad: 1,
+        precio: ''
+    });
+};
+
     const removeFromCart = (index) => {
-    // Filtramos el carrito manteniendo todos los elementos excepto el que coincide con el índice
-    const newCart = cart.filter((_, i) => i !== index);
-    setCart(newCart);
+    setCart(prevCart => {
+        const nuevoCarrito = prevCart.filter(
+            (_, i) => i !== index
+        );
+
+        const cantidadTotal = nuevoCarrito.reduce(
+            (total, producto) =>
+                total + Number(producto.cantidad),
+            0
+        );
+
+        const esMayorista = cantidadTotal >= 7;
+
+        return nuevoCarrito.map(producto => {
+            const precio = esMayorista
+                ? producto.precio_mayorista
+                : producto.precio_minorista;
+
+            return {
+                ...producto,
+                precio,
+                subtotal: Number(producto.cantidad) * precio
+            };
+        });
+    });
 };
 
   const procesarVentaFinal = async () => {
@@ -294,7 +375,7 @@ const handleRegistrarAbono = async (monto) => {
 
     try {
         const response = await axios.get(
-            `${BASE_URL}/api/clientes/ventas/${idVenta}/boleta`,
+            `${BASE_URL}/api/boletas/mayor/${idVenta}`,
             {
                 responseType: 'blob'
             }
