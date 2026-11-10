@@ -110,10 +110,10 @@ Crear el archivo `.env` y configurar las variables de conexión a MySQL:
 ```env
 DB_HOST=localhost
 DB_USER=root
-DB_PASSWORD=tu_password
+DB_PASSWORD=*******
 DB_NAME=bd_muebles
 PORT=3004
-JWT_SECRET=tu_clave_secreta
+JWT_SECRET=********
 ```
 
 > Las variables deben coincidir con la configuración utilizada en el backend.
