@@ -2,6 +2,17 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MdReceipt } from 'react-icons/md';
 
+import {
+    ArrowLeft,
+    ShoppingBag,
+    Wallet,
+    Clock,
+    HandCoins,
+    CheckCircle2,
+    Eye,
+    Receipt
+} from 'lucide-react';
+
 const BASE_URL = 'http://localhost:3004';
 
 const API_URL_CLIENTES = `${BASE_URL}/api/clientes`;
@@ -162,7 +173,7 @@ function ClientePage() {
             0
         );
 
-        const esMayorista = cantidadTotal >= 7;
+        const esMayorista = cantidadTotal >= 6;
 
         return nuevoCarrito.map(producto => {
             const precio = esMayorista
@@ -409,7 +420,7 @@ const handleRegistrarAbono = async (monto) => {
     if (view === 'LISTA_CLIENTES') {
         return (
             <div className="container  mx-auto p-6">
-                <h1 className="text-3xl font-bold mb-6">Gestión de Clientes</h1>
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-700 font-sans ml-4 mb-4">GESTIÓN DE CLIENTES</h1>
             
 
                 <form onSubmit={handleAddCliente} className="grid grid-cols-1 md:flex gap-4 mb-6">
@@ -727,55 +738,160 @@ const handleRegistrarAbono = async (monto) => {
         );
 }
 
-    if (view === 'VENTAS_CLIENTE') {
-        return (
-            <div className="container mx-auto p-6">
-                <button onClick={() => setView('LISTA_CLIENTES')} className="mb-4 text-indigo-600">← Volver</button>
+    if (view === 'VENTAS_CLIENTE') 
+{
+    return (
+        <div className="container mx-auto p-4 md:p-6 space-y-6">
 
-                <h2 className="text-xl font-bold mb-4 py-3">
-                    Historial de {selectedClient.nombre_cliente} {selectedClient.apellido_cliente}
-                </h2>
+            {/* ENCABEZADO */}
+            <div className="space-y-4">
 
-                
-<table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
-    <thead className="bg-blue-100 h-10">
-        <tr>
-            <th>Fecha</th>
-            <th>Total</th>
-            <th>Estado</th>
-            <th>Acción</th>
-        </tr>
-    </thead>
-    <tbody className="bg-white divide-y divide-gray-200">
-        {clientSales.map(v => {
-            const total = Number(v.total_venta);
-            const pagado = Number(v.pago_acumulado || 0);
-            const saldo = total - pagado;
+                <button
+                    onClick={() => setView('LISTA_CLIENTES')}
+                    className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors"
+                >
+                    <ArrowLeft size={18} />
+                    Volver a clientes
+                </button>
 
-            return (
-                <tr className='text-center pt-3 h-10' key={v.id_venta}>
-                    <td>{new Date(v.fecha_vente).toLocaleDateString()}</td>
-                    <td className="font-mono">S/{total.toFixed(2)}</td>
-                    
-                    
-                    <td>
-                        <span className={`px-2 py-1 inline-block rounded text-xs font-bold ${v.estado_pago === 'cancelado' ? 'bg-green-100 text-green-500' : 'bg-yellow-100 text-yellow-500'}`}>
-                            {v.estado_pago}
+                <div>
+                    <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-800">
+                        HISTORIAL DE VENTAS
+                    </h2>
+
+                    <div className="mt-2 h-1 w-16 rounded-full bg-blue-600"></div>
+
+                    <p className="mt-3 text-sm text-slate-500">
+                        Cliente:
+                        <span className="ml-2 font-bold text-slate-700">
+                            {selectedClient.nombre_cliente} {selectedClient.apellido_cliente}
                         </span>
-                    </td>
-                    <td>
-                        <button onClick={() => verDetalleVenta(v)} className="text-indigo-600 font-bold">
-                            Detalle
-                        </button>
-                    </td>
-                </tr>
-            );
-        })}
-    </tbody>
-</table>
+                    </p>
+                </div>
             </div>
-        );
-    }
+
+            {/* TABLA DE VENTAS */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+
+                <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800">
+                            Registro de ventas
+                        </h3>
+                        <p className="text-sm text-slate-500 mt-1">
+                            Consulta las ventas y el estado de pago del cliente.
+                        </p>
+                    </div>
+
+                    <span className="w-fit px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">
+                        {clientSales.length} ventas registradas
+                    </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="min-w-full">
+
+                        <thead className="bg-slate-50">
+                            <tr>
+                                <th className="px-5 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    Fecha
+                                </th>
+
+                                <th className="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    Total de venta
+                                </th>
+
+                                <th className="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    Estado de pago
+                                </th>
+
+                                <th className="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                    Acción
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-slate-100">
+
+                            {clientSales.map(v => {
+                                const total = Number(v.total_venta);
+                                const pagado = Number(v.pago_acumulado || 0);
+                                const saldo = total - pagado;
+
+                                return (
+                                    <tr
+                                        key={v.id_venta}
+                                        className="hover:bg-slate-50 transition-colors"
+                                    >
+
+                                        <td className="px-5 py-4 text-sm font-medium text-slate-700">
+                                            {new Date(v.fecha_vente).toLocaleDateString('es-PE')}
+                                        </td>
+
+                                        <td className="px-5 py-4 text-center">
+                                            <span className="font-bold text-slate-800">
+                                                S/ {total.toFixed(2)}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-5 py-4 text-center">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                                                v.estado_pago?.toLowerCase() === 'cancelado'
+                                                    ? 'bg-emerald-50 text-emerald-700'
+                                                    : 'bg-amber-50 text-amber-700'
+                                            }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                                    v.estado_pago?.toLowerCase() === 'cancelado'
+                                                        ? 'bg-emerald-500'
+                                                        : 'bg-amber-500'
+                                                }`}></span>
+
+                                                {v.estado_pago}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-5 py-4 text-center">
+                                            <button
+                                                onClick={() => verDetalleVenta(v)}
+                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm hover:bg-blue-600 hover:text-white transition-all"
+                                            >
+                                                <Eye size={17} />
+                                                Detalle
+                                            </button>
+                                        </td>
+
+                                    </tr>
+                                );
+                            })}
+
+                            {clientSales.length === 0 && (
+                                <tr>
+                                    <td
+                                        colSpan="4"
+                                        className="px-5 py-12 text-center"
+                                    >
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Receipt size={32} className="text-slate-300" />
+                                            <p className="font-semibold text-slate-500">
+                                                No hay ventas registradas
+                                            </p>
+                                            <p className="text-sm text-slate-400">
+                                                Este cliente todavía no tiene ventas registradas.
+                                            </p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    );
+}
+
 
     if (view === 'DETALLE_VENTA') {
     const totalVenta = Number(selectedSale.total_venta);
@@ -783,102 +899,279 @@ const handleRegistrarAbono = async (monto) => {
     const saldoPendiente = totalVenta - pagado;
 
     return (
-        <div className="container mx-auto p-6">
-            <button onClick={() => setView('VENTAS_CLIENTE')} className="mb-4 text-indigo-600">← Volver al historial</button>
-            
-            <h2 className="text-2xl font-bold mb-2">Detalle de Venta #{selectedSale.id_venta}</h2>
-            <p className="text-gray-600 mb-6">Cliente: {selectedClient.nombre_cliente}</p>
+        
+<div className="container mx-auto p-4 md:p-6 space-y-7">
 
-            {/* TARJETAS DE ESTADO DE CUENTA */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className="bg-white p-4 rounded-lg shadow border-l-4 border-indigo-500">
-                    <p className="text-sm text-gray-500 uppercase font-bold">Total Venta</p>
-                    <p className="text-2xl font-mono text-gray-800">S/ {totalVenta.toFixed(2)}</p>
+    {/* ENCABEZADO */}
+    <div className="space-y-4">
+        <button
+            onClick={() => setView('VENTAS_CLIENTE')}
+            className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors"
+        >
+            <ArrowLeft size={18} />
+            Volver al historial
+        </button>
+
+        <div>
+            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-800">
+                DETALLE DE VENTA
+            </h2>
+            <div className="mt-2 h-1 w-16 rounded-full bg-blue-600"></div>
+
+            <p className="mt-3 text-sm text-slate-500">
+                Cliente:
+                <span className="ml-2 font-bold text-slate-700">
+                    {selectedClient.nombre_cliente}
+                </span>
+            </p>
+        </div>
+    </div>
+
+    {/* TARJETAS DE ESTADO DE CUENTA */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+        {/* TOTAL VENTA */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Total de venta
+                    </p>
+                    <p className="text-2xl font-extrabold text-blue-700 mt-2">
+                        S/ {totalVenta.toFixed(2)}
+                    </p>
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
-                    <p className="text-sm text-gray-500 uppercase font-bold">Total Pagado</p>
-                    <p className="text-2xl font-mono text-green-600">S/ {pagado.toFixed(2)}</p>
+                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <ShoppingBag size={24} className="text-blue-600" />
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow border-l-4 border-red-500">
-                    <p className="text-sm text-gray-500 uppercase font-bold">Saldo Pendiente</p>
-                    <p className={`text-2xl font-mono ${saldoPendiente > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+            </div>
+            <div className="mt-4 h-1 w-full bg-blue-600 rounded-full"></div>
+        </div>
+
+        {/* TOTAL PAGADO */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Total pagado
+                    </p>
+                    <p className="text-2xl font-extrabold text-emerald-600 mt-2">
+                        S/ {pagado.toFixed(2)}
+                    </p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <Wallet size={24} className="text-emerald-600" />
+                </div>
+            </div>
+            <div className="mt-4 h-1 w-full bg-emerald-500 rounded-full"></div>
+        </div>
+
+        {/* SALDO PENDIENTE */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Saldo pendiente
+                    </p>
+                    <p className={`text-2xl font-extrabold mt-2 ${
+                        saldoPendiente > 0 ? 'text-red-600' : 'text-emerald-600'
+                    }`}>
                         S/ {saldoPendiente.toFixed(2)}
                     </p>
                 </div>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                    saldoPendiente > 0 ? 'bg-red-50' : 'bg-emerald-50'
+                }`}>
+                    <Clock size={24} className={
+                        saldoPendiente > 0 ? 'text-red-600' : 'text-emerald-600'
+                    } />
+                </div>
+            </div>
+            <div className={`mt-4 h-1 w-full rounded-full ${
+                saldoPendiente > 0 ? 'bg-red-500' : 'bg-emerald-500'
+            }`}></div>
+        </div>
+
+    </div>
+
+    {/* TABLA DE PRODUCTOS */}
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+                <h3 className="text-lg font-bold text-slate-800">
+                    Productos de la venta
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                    Detalle de los productos adquiridos.
+                </p>
             </div>
 
-            
-            <table className="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
-                <thead className="bg-blue-100">
+            <span className="w-fit px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">
+                {saleItems.length} productos
+            </span>
+        </div>
+
+        <div className="overflow-x-auto">
+            <table className="min-w-full">
+                <thead className="bg-slate-50">
                     <tr>
-                        <th className="p-3 text-left">Producto</th>
-                        <th className="p-3">Color</th>
-                        <th className="p-3">Cantidad</th>
-                        <th className="p-3">Precio</th>
-                        <th className="p-3">Subtotal</th>
+                        <th className="px-5 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            Producto
+                        </th>
+                        <th className="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            Color
+                        </th>
+                        <th className="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            Cantidad
+                        </th>
+                        <th className="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            Precio
+                        </th>
+                        <th className="px-5 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            Subtotal
+                        </th>
                     </tr>
                 </thead>
-                <tbody>
+
+                <tbody className="divide-y divide-slate-100">
                     {saleItems.map((item, idx) => (
-                        <tr key={idx} className="border-b">
-                            <td className="p-3">{item.nombre_producto}</td>
-                            <td className="p-3 text-center">{item.color}</td>
-                            <td className="p-3 text-center">{item.cantidad}</td>
-                            <td className="p-3 text-center">S/ {item.precio}</td>
-                            <td className="p-3 text-center font-bold text-gray-700">S/ {item.subtotal}</td>
+                        <tr
+                            key={idx}
+                            className="hover:bg-slate-50 transition-colors"
+                        >
+                            <td className="px-5 py-4 font-semibold text-slate-800">
+                                {item.nombre_producto}
+                            </td>
+
+                            <td className="px-5 py-4 text-center text-sm text-slate-600">
+                                {item.color || '—'}
+                            </td>
+
+                            <td className="px-5 py-4 text-center">
+                                <span className="inline-flex items-center justify-center min-w-9 px-3 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm">
+                                    {item.cantidad}
+                                </span>
+                            </td>
+
+                            <td className="px-5 py-4 text-center text-sm text-slate-600">
+                                S/ {Number(item.precio).toFixed(2)}
+                            </td>
+
+                            <td className="px-5 py-4 text-right font-bold text-slate-800">
+                                S/ {Number(item.subtotal).toFixed(2)}
+                            </td>
                         </tr>
                     ))}
+
+                    {saleItems.length === 0 && (
+                        <tr>
+                            <td colSpan="5" className="px-5 py-10 text-center text-slate-400">
+                                No hay productos registrados en esta venta.
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    {/* REGISTRAR NUEVO COBRO */}
+    {saldoPendiente > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+
+            <div className="p-5 md:p-6">
+                <div className="flex items-center gap-3 mb-5">
+                    <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
+                        <HandCoins size={23} className="text-emerald-600" />
+                    </div>
+
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800">
+                            Registrar nuevo cobro
+                        </h3>
+                        <p className="text-sm text-slate-500">
+                            Registra un abono para reducir el saldo pendiente.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                    <div className="w-full sm:max-w-xs">
+                        <label
+                            htmlFor="inputAbono"
+                            className="block text-sm font-semibold text-slate-700 mb-2"
+                        >
+                            Monto a cobrar
+                        </label>
+
+                        <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
+                                S/
+                            </span>
+
+                            <input
+                                type="number"
+                                id="inputAbono"
+                                placeholder="0.00"
+                                min="0.01"
+                                max={saldoPendiente}
+                                step="0.01"
+                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition"
+                            />
+                        </div>
+
+                        <p className="text-xs text-slate-400 mt-2">
+                            Saldo máximo: S/ {saldoPendiente.toFixed(2)}
+                        </p>
+                    </div>
+
+                    <button
+                        className="flex items-center justify-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-emerald-700 shadow-sm transition-all active:scale-[0.98]"
+                        onClick={() => {
+                            const monto = document.getElementById('inputAbono').value;
+                            handleRegistrarAbono(monto);
+                        }}
+                    >
+                        <CheckCircle2 size={19} />
+                        Confirmar cobro
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+
+    {/* VENTA CANCELADA */}
+    {saldoPendiente <= 0 && (
+        <div className="flex items-center gap-3 p-5 bg-emerald-50 border border-emerald-200 rounded-2xl">
+            <CheckCircle2 size={25} className="text-emerald-600" />
+            <div>
+                <p className="font-bold text-emerald-800">
+                    Venta cancelada
+                </p>
+                <p className="text-sm text-emerald-700">
+                    Esta venta no tiene saldo pendiente de pago.
+                </p>
+            </div>
+        </div>
+    )}
+
+    {/* GENERAR BOLETA */}
+    <div className="flex justify-end pt-2">
+        <button
+            onClick={() => generarBoleta(selectedSale.id_venta)}
+            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-[0.98]"
+        >
+            <MdReceipt size={21} />
+            Generar Boleta
+        </button>
+    </div>
+
+</div>
 
         
-{saldoPendiente > 0 && (
-    <div className="mt-8 p-6 bg-white border border-blue-500 rounded-lg shadow-inner">
-        <h3 className="text-lg font-bold text-blue-800 mb-2">Registrar nuevo cobro</h3>
-        <div className="flex items-center gap-4">
-            <div className="relative">
-                <span className="absolute left-3 top-2 text-gray-400">S/</span>
-                <input 
-                    type="number" 
-                    id="inputAbono"
-                    placeholder="0.00"
-                    className="pl-8 pr-4 py-2 border border-blue-500  rounded-md w-40 focus:ring-2 focus:ring-yellow-400 outline-none"
-                />
-            </div>
-            <button 
-                className="bg-green-600 text-white px-6 py-2 rounded-md font-bold hover:bg-green-700 shadow transition-transform active:scale-95"
-                onClick={() => {
-                    const monto = document.getElementById('inputAbono').value;
-                    handleRegistrarAbono(monto);
-                }}
-            >
-                Confirmar Cobro
-            </button>
-        </div>
-        <p className="text-xs text-blue-700 mt-2 italic">
-            * El monto ingresado se sumará al total pagado y reducirá el saldo.
-        </p>
-    </div>
-)}
-            
-       
-                        
-            <div className="mt-6 flex justify-end">
-                <button
-                    onClick={() => generarBoleta(selectedSale.id_venta)}
-                    className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-                >
-                    <MdReceipt size={20} />
-                    Generar Boleta
-                </button>
-            </div>
-              
-            </div>
-            
-            
-        );
-        
-    }
+    );
+}
 }
 
 export default ClientePage;

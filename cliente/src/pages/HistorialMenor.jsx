@@ -501,8 +501,8 @@ function HistorialMenor() {
 
                             
 
-                            <h1 className="text-2xl font-black text-slate-900">
-                                Historial de ventas por menor
+                             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-700 font-sans ml-4">
+                                HISTORIAL DE VENTAS
                             </h1>
 
                         </div>

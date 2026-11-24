@@ -1,6 +1,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { useSearchParams } from 'react-router-dom';
 
 import {
     MdInventory,
@@ -52,15 +53,14 @@ function StockPage() {
         texto: ''
     });
 
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // =====================================================
     // CARGAR INVENTARIO
     // =====================================================
 
     const cargarProductos = async () => {
-
         try {
-
             setLoading(true);
 
             const response = await axios.get(API_URL);
@@ -68,7 +68,6 @@ function StockPage() {
             setProductos(response.data);
 
         } catch (error) {
-
             console.error('Error al cargar inventario:', error);
 
             setMensaje({
@@ -78,22 +77,16 @@ function StockPage() {
             });
 
         } finally {
-
             setLoading(false);
-
         }
-
     };
-
 
     // =====================================================
     // CARGAR HISTORIAL GENERAL O INDIVIDUAL
     // =====================================================
 
     const cargarMovimientos = async (idProducto = null) => {
-
         try {
-
             setLoadingMovimientos(true);
 
             const url = idProducto
@@ -105,7 +98,6 @@ function StockPage() {
             setMovimientos(response.data);
 
         } catch (error) {
-
             console.error('Error al cargar movimientos:', error);
 
             setMensaje({
@@ -115,13 +107,9 @@ function StockPage() {
             });
 
         } finally {
-
             setLoadingMovimientos(false);
-
         }
-
     };
-
 
     // =====================================================
     // EFECTOS
@@ -132,17 +120,10 @@ function StockPage() {
     }, []);
 
     useEffect(() => {
-
         if (vista === 'historial') {
-
-            cargarMovimientos(
-                productoHistorial?.id || null
-            );
-
+            cargarMovimientos(productoHistorial?.id || null);
         }
-
     }, [vista, productoHistorial]);
-
 
     // =====================================================
     // ESTADÍSTICAS
@@ -176,7 +157,6 @@ function StockPage() {
         };
 
     }, [productos]);
-
 
     // =====================================================
     // FILTRAR PRODUCTOS
@@ -215,7 +195,6 @@ function StockPage() {
 
     }, [productos, busqueda, filtro]);
 
-
     // =====================================================
     // ABRIR MODAL
     // =====================================================
@@ -242,9 +221,43 @@ function StockPage() {
         });
 
         setMostrarModal(true);
-
     };
 
+    // =====================================================
+    // SELECCIONAR PRODUCTO DESDE EL DASHBOARD
+    // =====================================================
+
+    useEffect(() => {
+
+        const idProducto = searchParams.get('producto');
+
+        if (!idProducto || productos.length === 0) {
+            return;
+        }
+
+        const producto = productos.find(
+            p => Number(p.id) === Number(idProducto)
+        );
+
+        if (!producto) {
+            setMensaje({
+                tipo: 'error',
+                texto: 'No se encontró el producto seleccionado.'
+            });
+
+            setSearchParams({}, { replace: true });
+            return;
+        }
+
+        const tipo = Number(producto.stock) === 0
+            ? 'INICIAL'
+            : 'ENTRADA';
+
+        abrirModal(tipo, producto);
+
+        setSearchParams({}, { replace: true });
+
+    }, [productos, searchParams, setSearchParams]);
 
     // =====================================================
     // CERRAR MODAL
@@ -268,9 +281,7 @@ function StockPage() {
             tipo: '',
             texto: ''
         });
-
     };
-
 
     // =====================================================
     // MANEJAR FORMULARIO
@@ -284,9 +295,7 @@ function StockPage() {
             ...prev,
             [name]: value
         }));
-
     };
-
 
     // =====================================================
     // ACTUALIZAR STOCK MÍNIMO
@@ -301,18 +310,15 @@ function StockPage() {
             !Number.isInteger(stockMinimo) ||
             stockMinimo < 0
         ) {
-
             setMensaje({
                 tipo: 'error',
                 texto: 'El stock mínimo debe ser un número entero igual o mayor a cero.'
             });
 
             return false;
-
         }
 
         try {
-
             setGuardando(true);
 
             const response = await axios.put(
@@ -323,7 +329,6 @@ function StockPage() {
             );
 
             setMostrarModal(false);
-
             setProductoSeleccionado(null);
 
             setMensaje({
@@ -338,7 +343,6 @@ function StockPage() {
             return true;
 
         } catch (error) {
-
             console.error('Error al actualizar stock mínimo:', error);
 
             setMensaje({
@@ -351,13 +355,9 @@ function StockPage() {
             return false;
 
         } finally {
-
             setGuardando(false);
-
         }
-
     };
-
 
     // =====================================================
     // REGISTRAR MOVIMIENTO DE STOCK
@@ -368,17 +368,14 @@ function StockPage() {
         e.preventDefault();
 
         if (!formulario.id_producto) {
-
             setMensaje({
                 tipo: 'error',
                 texto: 'No se ha seleccionado un producto.'
             });
 
             return;
-
         }
 
-        // Si es configuración de stock mínimo
         if (tipoMovimiento === 'MINIMO') {
             await actualizarStockMinimo();
             return;
@@ -391,28 +388,24 @@ function StockPage() {
             !Number.isInteger(cantidad) ||
             cantidad <= 0
         ) {
-
             setMensaje({
                 tipo: 'error',
                 texto: 'La cantidad debe ser un número entero mayor a cero.'
             });
 
             return;
-
         }
 
         if (
             tipoMovimiento === 'SALIDA' &&
             !formulario.motivo.trim()
         ) {
-
             setMensaje({
                 tipo: 'error',
                 texto: 'Debes indicar el motivo de la salida.'
             });
 
             return;
-
         }
 
         const endpoints = {
@@ -422,7 +415,6 @@ function StockPage() {
         };
 
         try {
-
             setGuardando(true);
 
             const response = await axios.post(
@@ -437,7 +429,6 @@ function StockPage() {
             const mensajeExito = response.data.mensaje;
 
             setMostrarModal(false);
-
             setProductoSeleccionado(null);
 
             setFormulario({
@@ -454,15 +445,12 @@ function StockPage() {
             await cargarProductos();
 
             if (vista === 'historial') {
-
                 await cargarMovimientos(
                     productoHistorial?.id || null
                 );
-
             }
 
         } catch (error) {
-
             console.error('Error al registrar movimiento:', error);
 
             setMensaje({
@@ -472,49 +460,36 @@ function StockPage() {
             });
 
         } finally {
-
             setGuardando(false);
-
         }
-
     };
-
 
     // =====================================================
     // VER HISTORIAL INDIVIDUAL
     // =====================================================
 
     const verHistorialProducto = (producto) => {
-
         setProductoHistorial(producto);
         setVista('historial');
-
     };
-
 
     // =====================================================
     // VER HISTORIAL GENERAL
     // =====================================================
 
     const verHistorialGeneral = () => {
-
         setProductoHistorial(null);
         setVista('historial');
-
     };
-
 
     // =====================================================
     // VOLVER AL INVENTARIO
     // =====================================================
 
     const volverInventario = () => {
-
         setVista('inventario');
         setProductoHistorial(null);
-
     };
-
 
     // =====================================================
     // ESTADO DEL PRODUCTO
@@ -526,23 +501,19 @@ function StockPage() {
         const minimo = Number(producto.stock_minimo || 0);
 
         if (stock === 0) {
-
             return {
                 texto: 'Agotado',
                 clase: 'bg-red-100 text-red-700',
                 icono: <MdError />
             };
-
         }
 
         if (stock <= minimo) {
-
             return {
                 texto: 'Stock bajo',
                 clase: 'bg-amber-100 text-amber-700',
                 icono: <MdWarning />
             };
-
         }
 
         return {
@@ -550,9 +521,7 @@ function StockPage() {
             clase: 'bg-green-100 text-green-700',
             icono: <MdCheckCircle />
         };
-
     };
-
 
     // =====================================================
     // FORMATO DE FECHA
@@ -566,9 +535,7 @@ function StockPage() {
             dateStyle: 'short',
             timeStyle: 'short'
         });
-
     };
-
 
     // =====================================================
     // RENDERIZADO
@@ -581,7 +548,6 @@ function StockPage() {
             {/* ENCABEZADO */}
 
             <div className="mb-6">
-
                 <h1 className="text-2xl font-black text-slate-900">
                     Control de inventario
                 </h1>
@@ -589,9 +555,7 @@ function StockPage() {
                 <p className="text-sm text-slate-500 mt-1">
                     Administra las existencias y movimientos de tus muebles.
                 </p>
-
             </div>
-
 
             {/* MENSAJES */}
 
@@ -623,44 +587,45 @@ function StockPage() {
                     </button>
 
                 </div>
-
             )}
-
 
             {/* TARJETAS DE ESTADÍSTICAS */}
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
 
                 <TarjetaEstadistica
-                    titulo="Productos"
+                    titulo="Productos registrados"
                     valor={estadisticas.totalProductos}
-                    icono={<MdInventory />}
+                    descripcion="Total de referencias"
+                    icono={<MdInventory size={24} />}
                     color="blue"
                 />
 
                 <TarjetaEstadistica
                     titulo="Unidades disponibles"
                     valor={estadisticas.totalUnidades}
-                    icono={<MdWarehouse />}
+                    descripcion="Existencias actuales"
+                    icono={<MdWarehouse size={24} />}
                     color="green"
                 />
 
                 <TarjetaEstadistica
                     titulo="Stock bajo"
                     valor={estadisticas.stockBajo}
-                    icono={<MdWarning />}
+                    descripcion="Requieren reposición"
+                    icono={<MdWarning size={24} />}
                     color="amber"
                 />
 
                 <TarjetaEstadistica
-                    titulo="Agotados"
+                    titulo="Productos agotados"
                     valor={estadisticas.agotados}
-                    icono={<MdError />}
+                    descripcion="Sin existencias"
+                    icono={<MdError size={24} />}
                     color="red"
                 />
 
             </div>
-
 
             {/* PESTAÑAS */}
 
@@ -691,7 +656,6 @@ function StockPage() {
                 </button>
 
             </div>
-
 
             {/* ================================================= */}
             {/* INVENTARIO */}
@@ -761,7 +725,6 @@ function StockPage() {
 
                     </div>
 
-
                     {loading ? (
 
                         <div className="py-16 text-center text-slate-500">
@@ -819,7 +782,6 @@ function StockPage() {
 
                                 </thead>
 
-
                                 <tbody className="divide-y divide-slate-100">
 
                                     {productosFiltrados.map(producto => {
@@ -845,7 +807,6 @@ function StockPage() {
 
                                                 </td>
 
-
                                                 <td className="px-5 py-4 text-center">
 
                                                     <span className="font-black text-lg text-slate-800">
@@ -858,11 +819,9 @@ function StockPage() {
 
                                                 </td>
 
-
                                                 <td className="px-5 py-4 text-center font-semibold text-slate-600">
                                                     {producto.stock_minimo}
                                                 </td>
-
 
                                                 <td className="px-5 py-4 text-center">
 
@@ -873,14 +832,9 @@ function StockPage() {
 
                                                 </td>
 
-
-                                                {/* ACCIONES */}
-
                                                 <td className="px-5 py-4">
 
                                                     <div className="flex justify-center items-center gap-2">
-
-                                                        {/* AGREGAR STOCK */}
 
                                                         <button
                                                             onClick={() => abrirModal(
@@ -899,9 +853,6 @@ function StockPage() {
                                                             <MdAdd size={21} />
                                                         </button>
 
-
-                                                        {/* RETIRAR STOCK */}
-
                                                         <button
                                                             onClick={() => abrirModal('SALIDA', producto)}
                                                             disabled={Number(producto.stock) === 0}
@@ -911,9 +862,6 @@ function StockPage() {
                                                             <MdRemove size={21} />
                                                         </button>
 
-
-                                                        {/* HISTORIAL */}
-
                                                         <button
                                                             onClick={() => verHistorialProducto(producto)}
                                                             title="Consultar movimientos"
@@ -921,9 +869,6 @@ function StockPage() {
                                                         >
                                                             <MdHistory size={21} />
                                                         </button>
-
-
-                                                        {/* STOCK MÍNIMO */}
 
                                                         <button
                                                             onClick={() => abrirModal('MINIMO', producto)}
@@ -951,7 +896,6 @@ function StockPage() {
 
                     )}
 
-
                     <div className="p-4 border-t border-slate-100 text-xs text-slate-400">
                         Mostrando {productosFiltrados.length} de {productos.length} productos.
                     </div>
@@ -959,7 +903,6 @@ function StockPage() {
                 </div>
 
             )}
-
 
             {/* ================================================= */}
             {/* HISTORIAL */}
@@ -1001,7 +944,6 @@ function StockPage() {
                         )}
 
                     </div>
-
 
                     {loadingMovimientos ? (
 
@@ -1060,7 +1002,6 @@ function StockPage() {
 
                                 </thead>
 
-
                                 <tbody className="divide-y divide-slate-100">
 
                                     {movimientos.map(movimiento => (
@@ -1108,7 +1049,6 @@ function StockPage() {
 
                     )}
 
-
                     <div className="p-4 border-t border-slate-100">
 
                         <button
@@ -1124,9 +1064,8 @@ function StockPage() {
 
             )}
 
-
             {/* ================================================= */}
-            {/* MODAL COMPACTO */}
+            {/* MODAL */}
             {/* ================================================= */}
 
             {mostrarModal && (
@@ -1134,8 +1073,6 @@ function StockPage() {
                 <div className="fixed inset-0 z-[100] bg-slate-950/50 flex items-center justify-center p-3">
 
                     <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl overflow-hidden">
-
-                        {/* ENCABEZADO */}
 
                         <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
 
@@ -1171,15 +1108,10 @@ function StockPage() {
 
                         </div>
 
-
-                        {/* FORMULARIO */}
-
                         <form
                             onSubmit={registrarMovimiento}
                             className="p-4 space-y-3"
                         >
-
-                            {/* PRODUCTO */}
 
                             <div>
 
@@ -1201,9 +1133,6 @@ function StockPage() {
 
                             </div>
 
-
-                            {/* STOCK ACTUAL */}
-
                             {tipoMovimiento !== 'MINIMO' && (
 
                                 <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
@@ -1219,9 +1148,6 @@ function StockPage() {
                                 </div>
 
                             )}
-
-
-                            {/* CANTIDAD */}
 
                             <div>
 
@@ -1260,9 +1186,6 @@ function StockPage() {
                                 )}
 
                             </div>
-
-
-                            {/* MOTIVO */}
 
                             {tipoMovimiento !== 'MINIMO' && (
 
@@ -1304,9 +1227,6 @@ function StockPage() {
 
                             )}
 
-
-                            {/* ERROR */}
-
                             {mensaje.tipo === 'error' && mensaje.texto && (
 
                                 <div className="bg-red-50 text-red-700 border border-red-100 rounded-lg px-3 py-2 text-xs flex gap-2 items-center">
@@ -1318,9 +1238,6 @@ function StockPage() {
                                 </div>
 
                             )}
-
-
-                            {/* BOTONES */}
 
                             <div className="flex gap-2 pt-1">
 
@@ -1370,42 +1287,101 @@ function StockPage() {
 
 }
 
-
 // =====================================================
 // TARJETA DE ESTADÍSTICA
 // =====================================================
 
-function TarjetaEstadistica({ titulo, valor, icono, color }) {
+function TarjetaEstadistica({
+    titulo,
+    valor,
+    descripcion,
+    icono,
+    color
+}) {
 
     const colores = {
-        blue: 'bg-blue-50 text-blue-600',
-        green: 'bg-green-50 text-green-600',
-        amber: 'bg-amber-50 text-amber-600',
-        red: 'bg-red-50 text-red-600'
+
+        blue: {
+            fondo: 'bg-blue-50',
+            texto: 'text-blue-600',
+            borde: 'border-blue-100',
+            indicador: 'bg-blue-500',
+            hover: 'group-hover:bg-blue-100'
+        },
+
+        green: {
+            fondo: 'bg-emerald-50',
+            texto: 'text-emerald-600',
+            borde: 'border-emerald-100',
+            indicador: 'bg-emerald-500',
+            hover: 'group-hover:bg-emerald-100'
+        },
+
+        amber: {
+            fondo: 'bg-amber-50',
+            texto: 'text-amber-600',
+            borde: 'border-amber-100',
+            indicador: 'bg-amber-500',
+            hover: 'group-hover:bg-amber-100'
+        },
+
+        red: {
+            fondo: 'bg-red-50',
+            texto: 'text-red-600',
+            borde: 'border-red-100',
+            indicador: 'bg-red-500',
+            hover: 'group-hover:bg-red-100'
+        }
+
     };
+
+    const estilo = colores[color] || colores.blue;
 
     return (
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+        <div className="group relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
 
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-2xl mb-3 ${colores[color]}`}>
-                {icono}
+            {/* INDICADOR SUPERIOR */}
+
+            <div className={`absolute top-0 left-0 w-full h-1 ${estilo.indicador}`} />
+
+            <div className="flex items-start justify-between gap-3">
+
+                {/* INFORMACIÓN */}
+
+                <div className="min-w-0">
+
+                    <p className="text-xs sm:text-sm font-semibold text-slate-500 leading-5">
+                        {titulo}
+                    </p>
+
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3 tracking-tight">
+                        {Number(valor || 0).toLocaleString('es-PE')}
+                    </h3>
+
+                    <p className="text-[10px] sm:text-xs text-slate-400 mt-2">
+                        {descripcion}
+                    </p>
+
+                </div>
+
+                {/* ICONO */}
+
+                <div className={`w-11 h-11 sm:w-12 sm:h-12 shrink-0 rounded-xl border flex items-center justify-center ${estilo.fondo} ${estilo.texto} ${estilo.borde} ${estilo.hover} transition-colors duration-300`}>
+                    {icono}
+                </div>
+
             </div>
 
-            <p className="text-2xl font-black text-slate-800">
-                {valor}
-            </p>
+            {/* DETALLE DECORATIVO */}
 
-            <p className="text-xs text-slate-500 font-medium mt-1">
-                {titulo}
-            </p>
+            <div className={`absolute -bottom-7 -right-7 w-20 h-20 rounded-full opacity-[0.04] ${estilo.indicador}`} />
 
         </div>
 
     );
 
 }
-
 
 // =====================================================
 // ETIQUETA DE MOVIMIENTO
@@ -1457,6 +1433,4 @@ function TipoMovimiento({ tipo }) {
 
 }
 
-
 export default StockPage;
-
