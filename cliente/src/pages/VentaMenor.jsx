@@ -43,9 +43,9 @@ function VentaMenor() {
         texto: ''
     });
 
-    // =====================================================
+    
     // CARGAR PRODUCTOS
-    // =====================================================
+   
 
     const cargarProductos = async () => {
 
@@ -84,9 +84,9 @@ function VentaMenor() {
         cargarProductos();
     }, []);
 
-    // =====================================================
+    
     // OBTENER DATOS DEL PRODUCTO
-    // =====================================================
+   
 
     const obtenerId = (producto) =>
         producto.id_producto ?? producto.id;
@@ -106,9 +106,9 @@ function VentaMenor() {
     const obtenerStock = (producto) =>
         Number(producto.stock ?? 0);
 
-    // =====================================================
+    
     // CONSULTAR DNI Y REGISTRAR/RECUPERAR CLIENTE EN MYSQL
-    // =====================================================
+    
 
     const consultarDni = async () => {
 
@@ -584,13 +584,11 @@ function VentaMenor() {
 
                 <div>
 
-                    <h1 className="text-2xl font-black text-slate-900">
-                        Venta por menor
+                    <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-700 font-sans ml-4">
+                        VENTA MINORISTA
                     </h1>
 
-                    <p className="text-sm text-slate-500 mt-1">
-                        Registra ventas unitarias con pago completo.
-                    </p>
+                    
 
                 </div>
 

@@ -71,6 +71,8 @@ let db;
     const boletasRoutes = require('./routes/Boletas')(db); 
     app.use('/api/boletas', authMiddleware, boletasRoutes);
    
+    const dashboardRoutes = require('./routes/Dashboard')(db);
+    app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 
     app.get('/', (req, res) => {
       res.send('API de Mueblería funcionando correctamente.');
