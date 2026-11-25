@@ -1,90 +1,99 @@
+
 require('dotenv').config();
+
 const express = require('express');
-const mysql = require('mysql2/promise');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 
+const db = require('./config/db');
 const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
 
-// Middlewares
-app.use(bodyParser.json());
+// MIDDLEWARES
+app.use(express.json());
 
 const allowedOrigins = [
-  'http://localhost:3000'
+    'http://localhost:3000'
 ];
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Bloqueado por CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+        callback(new Error('Bloqueado por CORS'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
 }));
 
-let db;
+// RUTAS
+async function iniciarServidor() {
+    try {
+        // Verificar conexión PostgreSQL
+        await db.query('SELECT NOW()');
 
-(async () => {
-  try {
+        console.log('Conexión a Supabase PostgreSQL exitosa.');
 
-    db = await mysql.createConnection({
-      host: process.env.DB_HOST,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      port: Number(process.env.DB_PORT)
-    });
+        const authRoutes = require('./routes/Auth')(db);
+        app.use('/api/auth', authRoutes);
 
-    console.log('Conexión a la base de datos exitosa.');
+        const productosRoutes = require('./routes/Productos')(db);
+        app.use('/api/productos', authMiddleware, productosRoutes);
 
-    const authRoutes = require('./routes/Auth')(db);
-    app.use('/api/auth', authRoutes);
+        const clientesRoutes = require('./routes/Clientes')(db);
+        app.use('/api/clientes', authMiddleware, clientesRoutes);
 
-    const productoRoutes = require('./routes/Productos')(db);
-    app.use('/api/productos', authMiddleware, productoRoutes);
+        const configuracionPreciosRoutes =
+            require('./routes/ConfiguracionPrecios')(db);
 
-    const clientesRoutes = require('./routes/Clientes')(db);
-    app.use('/api/clientes', authMiddleware, clientesRoutes);
+        app.use(
+            '/api/configuracion-precios',
+            authMiddleware,
+            configuracionPreciosRoutes
+        );
 
-    const productosRoutes = require('./routes/Productos');
-    app.use('/api/productos', authMiddleware, productosRoutes(db));
+        const ventasMinoristasRoutes =
+            require('./routes/VentasMinoristas')(db);
 
-    const configuracionPreciosRoutes = require('./routes/ConfiguracionPrecios');
-    app.use('/api/configuracion-precios', authMiddleware, configuracionPreciosRoutes(db));
+        app.use(
+            '/api/ventas-minoristas',
+            authMiddleware,
+            ventasMinoristasRoutes
+        );
 
-    const ventasMinoristasRoutes = require('./routes/VentasMinoristas')(db);
-    app.use('/api/ventas-minoristas', authMiddleware, ventasMinoristasRoutes);
+        const consultaDniRoutes = require('./routes/ConsultaDni');
 
-    const consultaDniRoutes = require('./routes/ConsultaDni');
-    app.use('/api/consulta', authMiddleware, consultaDniRoutes());
+        app.use(
+            '/api/consulta',
+            authMiddleware,
+            consultaDniRoutes()
+        );
 
-    const stockRoutes = require('./routes/Stock')(db);
-    app.use('/api/stock', authMiddleware, stockRoutes);
+        const stockRoutes = require('./routes/Stock')(db);
+        app.use('/api/stock', authMiddleware, stockRoutes);
 
-    const boletasRoutes = require('./routes/Boletas')(db); 
-    app.use('/api/boletas', authMiddleware, boletasRoutes);
-   
-    const dashboardRoutes = require('./routes/Dashboard')(db);
-    app.use('/api/dashboard', authMiddleware, dashboardRoutes);
+        const boletasRoutes = require('./routes/Boletas')(db);
+        app.use('/api/boletas', authMiddleware, boletasRoutes);
 
-    app.get('/', (req, res) => {
-      res.send('API de Mueblería funcionando correctamente.');
-    });
+        const dashboardRoutes = require('./routes/Dashboard')(db);
+        app.use('/api/dashboard', authMiddleware, dashboardRoutes);
 
-    const PORT = process.env.PORT;
-    
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Servidor corriendo en http://localhost:${PORT}`);
-    });
+        app.get('/', (req, res) => {
+            res.send('API de Mueblería funcionando correctamente.');
+        });
 
-  } catch (error) {
-    console.error('Error conectando a la base de datos:', error);
-  }
-})();
+        const PORT = process.env.PORT || 3004;
+
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Servidor corriendo en http://localhost:${PORT}`);
+        });
+
+    } catch (error) {
+        console.error('Error iniciando el servidor:', error);
+        process.exit(1);
+    }
+}
+
+iniciarServidor();
