@@ -4,10 +4,10 @@ const express = require('express');
 module.exports = function (db) {
     const router = express.Router();
 
-    //listar productos 
+    // LISTAR PRODUCTOS DISPONIBLES PARA VENTAS MINORISTAS.
     router.get('/productos', async (req, res) => {
         try {
-            const [productos] = await db.query(`
+            const resultado = await db.query(`
                 SELECT
                     id_producto AS id,
                     nombre_producto AS nombre,
@@ -19,7 +19,7 @@ module.exports = function (db) {
                 ORDER BY nombre_producto ASC
             `);
 
-            res.json(productos);
+            res.json(resultado.rows);
 
         } catch (error) {
             console.error('Error al listar productos minoristas:', error);
@@ -30,8 +30,7 @@ module.exports = function (db) {
         }
     });
 
-
-    //datos de cliente por dni 
+    // CONSULTAR O REGISTRAR CLIENTE POR DNI.
     router.post('/clientes', async (req, res) => {
         try {
             const {
@@ -58,42 +57,57 @@ module.exports = function (db) {
                 apellido_materno
             ].filter(Boolean).join(' ');
 
-            const [clientes] = await db.query(
+            const clientes = await db.query(
                 `SELECT *
                  FROM clientes_minoristas
-                 WHERE dni = ?`,
+                 WHERE dni = $1`,
                 [dni]
             );
 
             // Si el cliente ya existe, devolver sus datos.
-            if (clientes.length > 0) {
+            if (clientes.rows.length > 0) {
                 return res.json({
                     mensaje: 'Cliente encontrado.',
-                    cliente: clientes[0]
+                    cliente: clientes.rows[0]
                 });
             }
 
-            const [resultado] = await db.query(
-                `INSERT INTO clientes_minoristas
-                    (dni, nombre_cliente, apellido_cliente)
-                 VALUES (?, ?, ?)`,
-                [dni, nombres.trim(), apellidoCompleto.trim()]
+            const resultado = await db.query(
+                `INSERT INTO clientes_minoristas (
+                    dni,
+                    nombre_cliente,
+                    apellido_cliente
+                )
+                VALUES ($1, $2, $3)
+                RETURNING id_cliente_minorista`,
+                [
+                    dni,
+                    nombres.trim(),
+                    apellidoCompleto.trim()
+                ]
             );
 
-            const [nuevoCliente] = await db.query(
+            const nuevoCliente = await db.query(
                 `SELECT *
                  FROM clientes_minoristas
-                 WHERE id_cliente_minorista = ?`,
-                [resultado.insertId]
+                 WHERE id_cliente_minorista = $1`,
+                [resultado.rows[0].id_cliente_minorista]
             );
 
             res.status(201).json({
                 mensaje: 'Cliente registrado correctamente.',
-                cliente: nuevoCliente[0]
+                cliente: nuevoCliente.rows[0]
             });
 
         } catch (error) {
             console.error('Error al registrar cliente minorista:', error);
+
+            // PostgreSQL: 23505 = violación de restricción UNIQUE.
+            if (error.code === '23505') {
+                return res.status(409).json({
+                    mensaje: 'Ya existe un cliente registrado con ese DNI.'
+                });
+            }
 
             res.status(500).json({
                 mensaje: 'Error al registrar el cliente.'
@@ -101,17 +115,15 @@ module.exports = function (db) {
         }
     });
 
-
-    //registrar nueva venta
+    // REGISTRAR NUEVA VENTA MINORISTA.
     router.post('/', async (req, res) => {
+        const {
+            dni,
+            productos,
+            metodo_pago
+        } = req.body;
 
         try {
-            const {
-                dni,
-                productos,
-                metodo_pago
-            } = req.body;
-
             if (!dni || !/^\d{8}$/.test(String(dni))) {
                 return res.status(400).json({
                     mensaje: 'Debes proporcionar un DNI válido.'
@@ -158,29 +170,32 @@ module.exports = function (db) {
                 }
             }
 
-            await db.beginTransaction();
+            // Obtener un cliente del pool para ejecutar toda la transacción.
+            const client = await db.connect();
 
             try {
-                // Buscar cliente.
-                const [clientes] = await db.query(
+                await client.query('BEGIN');
+
+                // 1. Buscar y bloquear al cliente.
+                const clientes = await client.query(
                     `SELECT id_cliente_minorista
                      FROM clientes_minoristas
-                     WHERE dni = ?
+                     WHERE dni = $1
                      FOR UPDATE`,
                     [dni]
                 );
 
-                if (clientes.length === 0) {
-                    await db.rollback();
-
-                    return res.status(404).json({
-                        mensaje: 'El cliente no está registrado. Primero consulta y registra su DNI.'
-                    });
+                if (clientes.rows.length === 0) {
+                    const error = new Error(
+                        'El cliente no está registrado. Primero consulta y registra su DNI.'
+                    );
+                    error.status = 404;
+                    throw error;
                 }
 
-                const idCliente = clientes[0].id_cliente_minorista;
+                const idCliente = clientes.rows[0].id_cliente_minorista;
 
-                // Agrupar productos repetidos para validar correctamente el stock.
+                // 2. Agrupar productos repetidos para validar correctamente el stock.
                 const cantidades = new Map();
 
                 for (const producto of productos) {
@@ -195,28 +210,27 @@ module.exports = function (db) {
                 const productosValidados = [];
                 let totalVenta = 0;
 
-                // Verificar precios y stock directamente en MySQL.
+                // 3. Verificar precios y stock directamente en PostgreSQL.
                 for (const [idProducto, cantidad] of cantidades) {
-
-                    const [rows] = await db.query(
+                    const resultadoProducto = await client.query(
                         `SELECT
                             id_producto,
                             nombre_producto,
                             precio_minorista,
                             stock
                          FROM productos
-                         WHERE id_producto = ?
+                         WHERE id_producto = $1
                          FOR UPDATE`,
                         [idProducto]
                     );
 
-                    if (rows.length === 0) {
+                    if (resultadoProducto.rows.length === 0) {
                         throw new Error(
                             `El producto con ID ${idProducto} no existe.`
                         );
                     }
 
-                    const productoDB = rows[0];
+                    const productoDB = resultadoProducto.rows[0];
                     const stockActual = Number(productoDB.stock);
                     const precio = Number(productoDB.precio_minorista);
 
@@ -263,11 +277,11 @@ module.exports = function (db) {
                     }
                 }
 
-                // El cliente debe pagar el total completo.
+                // 4. El cliente debe pagar el total completo.
                 const montoPagado = totalVenta;
 
-                // Obtener correlativo y bloquear la fila.
-                const [series] = await db.query(
+                // 5. Obtener y bloquear el correlativo de comprobantes.
+                const series = await client.query(
                     `SELECT id, serie, correlativo
                      FROM boleta_serie_minorista
                      ORDER BY id ASC
@@ -275,27 +289,31 @@ module.exports = function (db) {
                      FOR UPDATE`
                 );
 
-                if (series.length === 0) {
+                if (series.rows.length === 0) {
                     throw new Error(
                         'No existe una serie configurada para comprobantes minoristas.'
                     );
                 }
 
-                const serie = series[0].serie;
-                const nuevoCorrelativo = Number(series[0].correlativo) + 1;
+                const serie = series.rows[0].serie;
+                const nuevoCorrelativo =
+                    Number(series.rows[0].correlativo) + 1;
 
                 const numeroComprobante =
                     `${serie}-${String(nuevoCorrelativo).padStart(8, '0')}`;
 
-                await db.query(
+                await client.query(
                     `UPDATE boleta_serie_minorista
-                     SET correlativo = ?
-                     WHERE id = ?`,
-                    [nuevoCorrelativo, series[0].id]
+                     SET correlativo = $1
+                     WHERE id = $2`,
+                    [
+                        nuevoCorrelativo,
+                        series.rows[0].id
+                    ]
                 );
 
-                // Registrar cabecera de venta.
-                const [venta] = await db.query(
+                // 6. Registrar cabecera de venta.
+                const venta = await client.query(
                     `INSERT INTO ventas_minoristas (
                         numero_comprobante,
                         id_cliente_minorista,
@@ -303,7 +321,9 @@ module.exports = function (db) {
                         monto_pagado,
                         metodo_pago,
                         estado_pago
-                    ) VALUES (?, ?, ?, ?, ?, 'CANCELADO')`,
+                    )
+                    VALUES ($1, $2, $3, $4, $5, 'CANCELADO')
+                    RETURNING id_venta_minorista`,
                     [
                         numeroComprobante,
                         idCliente,
@@ -313,12 +333,11 @@ module.exports = function (db) {
                     ]
                 );
 
-                const idVenta = venta.insertId;
+                const idVenta = venta.rows[0].id_venta_minorista;
 
-                // Registrar detalles y descontar stock.
+                // 7. Registrar detalles y descontar stock.
                 for (const producto of productosValidados) {
-
-                    await db.query(
+                    await client.query(
                         `INSERT INTO detalle_ventas_minoristas (
                             id_venta_minorista,
                             id_producto,
@@ -326,7 +345,8 @@ module.exports = function (db) {
                             cantidad,
                             precio_unitario,
                             subtotal
-                        ) VALUES (?, ?, ?, ?, ?, ?)`,
+                        )
+                        VALUES ($1, $2, $3, $4, $5, $6)`,
                         [
                             idVenta,
                             producto.id_producto,
@@ -337,11 +357,12 @@ module.exports = function (db) {
                         ]
                     );
 
-                    const [actualizacion] = await db.query(
+                    const actualizacion = await client.query(
                         `UPDATE productos
-                         SET stock = stock - ?
-                         WHERE id_producto = ?
-                           AND stock >= ?`,
+                         SET stock = stock - $1
+                         WHERE id_producto = $2
+                           AND stock >= $3
+                         RETURNING id_producto`,
                         [
                             producto.cantidad,
                             producto.id_producto,
@@ -349,14 +370,15 @@ module.exports = function (db) {
                         ]
                     );
 
-                    if (actualizacion.affectedRows !== 1) {
+                    if (actualizacion.rowCount !== 1) {
                         throw new Error(
                             `No se pudo actualizar el stock del producto ${producto.nombre}.`
                         );
                     }
                 }
 
-                await db.commit();
+                // 8. Confirmar toda la operación.
+                await client.query('COMMIT');
 
                 res.status(201).json({
                     mensaje: 'Venta minorista registrada correctamente.',
@@ -373,24 +395,26 @@ module.exports = function (db) {
                 });
 
             } catch (error) {
-                await db.rollback();
+                await client.query('ROLLBACK');
                 throw error;
+
+            } finally {
+                client.release();
             }
 
         } catch (error) {
             console.error('Error al registrar venta minorista:', error);
 
-            res.status(400).json({
+            res.status(error.status || 400).json({
                 mensaje: error.message || 'No se pudo registrar la venta.'
             });
         }
     });
 
-
-    //historial
+    // HISTORIAL DE VENTAS MINORISTAS.
     router.get('/historial', async (req, res) => {
         try {
-            const [ventas] = await db.query(`
+            const resultado = await db.query(`
                 SELECT
                     v.id_venta_minorista AS id_venta,
                     v.numero_comprobante,
@@ -408,7 +432,7 @@ module.exports = function (db) {
                 ORDER BY v.id_venta_minorista DESC
             `);
 
-            res.json(ventas);
+            res.json(resultado.rows);
 
         } catch (error) {
             console.error('Error al obtener historial minorista:', error);
@@ -419,8 +443,7 @@ module.exports = function (db) {
         }
     });
 
-
-    //detalle venta
+    // OBTENER DETALLE DE UNA VENTA MINORISTA.
     router.get('/:id/detalle', async (req, res) => {
         try {
             const idVenta = Number(req.params.id);
@@ -431,7 +454,7 @@ module.exports = function (db) {
                 });
             }
 
-            const [ventas] = await db.query(
+            const ventas = await db.query(
                 `SELECT
                     v.*,
                     c.dni,
@@ -440,17 +463,17 @@ module.exports = function (db) {
                  FROM ventas_minoristas v
                  INNER JOIN clientes_minoristas c
                     ON v.id_cliente_minorista = c.id_cliente_minorista
-                 WHERE v.id_venta_minorista = ?`,
+                 WHERE v.id_venta_minorista = $1`,
                 [idVenta]
             );
 
-            if (ventas.length === 0) {
+            if (ventas.rows.length === 0) {
                 return res.status(404).json({
                     mensaje: 'Venta minorista no encontrada.'
                 });
             }
 
-            const [detalles] = await db.query(
+            const detalles = await db.query(
                 `SELECT
                     d.id_detalle_minorista,
                     d.id_producto,
@@ -462,14 +485,14 @@ module.exports = function (db) {
                  FROM detalle_ventas_minoristas d
                  INNER JOIN productos p
                     ON d.id_producto = p.id_producto
-                 WHERE d.id_venta_minorista = ?
+                 WHERE d.id_venta_minorista = $1
                  ORDER BY d.id_detalle_minorista ASC`,
                 [idVenta]
             );
 
             res.json({
-                venta: ventas[0],
-                detalles: detalles
+                venta: ventas.rows[0],
+                detalles: detalles.rows
             });
 
         } catch (error) {
@@ -480,7 +503,6 @@ module.exports = function (db) {
             });
         }
     });
-
 
     return router;
 };

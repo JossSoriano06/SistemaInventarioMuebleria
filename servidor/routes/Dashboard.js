@@ -39,12 +39,12 @@ module.exports = function (db) {
                 });
             }
 
-            // Obtener la fecha actual desde MySQL.
-            const [fechaActual] = await db.query(`
-                SELECT DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS hoy
+            // Obtener la fecha actual desde PostgreSQL.
+            const resultadoFecha = await db.query(`
+                SELECT CURRENT_DATE::text AS hoy
             `);
 
-            const hoy = fechaActual[0].hoy;
+            const hoy = resultadoFecha.rows[0].hoy;
 
             let fechaDesde;
             let fechaHasta;
@@ -87,32 +87,32 @@ module.exports = function (db) {
             const parametrosFecha = [fechaDesde, fechaHasta];
 
             // 1. Indicadores de ventas minoristas.
-            const [ventasMinoristas] = await db.query(`
+            const resultadoMinoristas = await db.query(`
                 SELECT
                     COUNT(*) AS cantidad_ventas,
                     COALESCE(SUM(total_venta), 0) AS total_vendido,
                     COALESCE(SUM(monto_pagado), 0) AS total_cobrado
                 FROM ventas_minoristas
-                WHERE fecha_venta >= ?
-                  AND fecha_venta < DATE_ADD(?, INTERVAL 1 DAY)
+                WHERE fecha_venta >= $1::date
+                  AND fecha_venta < ($2::date + INTERVAL '1 day')
             `, parametrosFecha);
 
             // 2. Indicadores de ventas mayoristas.
-            const [ventasMayoristas] = await db.query(`
+            const resultadoMayoristas = await db.query(`
                 SELECT
                     COUNT(*) AS cantidad_ventas,
                     COALESCE(SUM(total_venta), 0) AS total_vendido,
                     COALESCE(SUM(pago_acumulado), 0) AS total_cobrado
                 FROM ventas
-                WHERE fecha_vente >= ?
-                  AND fecha_vente < DATE_ADD(?, INTERVAL 1 DAY)
+                WHERE fecha_vente >= $1::date
+                  AND fecha_vente < ($2::date + INTERVAL '1 day')
             `, parametrosFecha);
 
-            const minoristas = ventasMinoristas[0];
-            const mayoristas = ventasMayoristas[0];
+            const minoristas = resultadoMinoristas.rows[0];
+            const mayoristas = resultadoMayoristas.rows[0];
 
             // 3. Indicadores actuales del inventario.
-            const [inventario] = await db.query(`
+            const resultadoInventario = await db.query(`
                 SELECT
                     COUNT(*) AS total_productos,
 
@@ -131,8 +131,10 @@ module.exports = function (db) {
                 FROM productos
             `);
 
+            const inventario = resultadoInventario.rows[0];
+
             // 4. Evolución de ventas y cobros según el período.
-            const [evolucion] = await db.query(`
+            const resultadoEvolucion = await db.query(`
                 SELECT
                     fecha,
                     SUM(total) AS ventas,
@@ -140,30 +142,32 @@ module.exports = function (db) {
                     SUM(cantidad) AS cantidad_ventas
                 FROM (
                     SELECT
-                        DATE(fecha_venta) AS fecha,
+                        fecha_venta::date AS fecha,
                         total_venta AS total,
                         monto_pagado AS cobrado,
                         1 AS cantidad
                     FROM ventas_minoristas
-                    WHERE fecha_venta >= ?
-                      AND fecha_venta < DATE_ADD(?, INTERVAL 1 DAY)
+                    WHERE fecha_venta >= $1::date
+                      AND fecha_venta < ($2::date + INTERVAL '1 day')
 
                     UNION ALL
 
                     SELECT
-                        DATE(fecha_vente) AS fecha,
+                        fecha_vente::date AS fecha,
                         total_venta AS total,
                         pago_acumulado AS cobrado,
                         1 AS cantidad
                     FROM ventas
-                    WHERE fecha_vente >= ?
-                      AND fecha_vente < DATE_ADD(?, INTERVAL 1 DAY)
+                    WHERE fecha_vente >= $3::date
+                      AND fecha_vente < ($4::date + INTERVAL '1 day')
                 ) AS historial
                 GROUP BY fecha
                 ORDER BY fecha ASC
             `, [
-                fechaDesde, fechaHasta,
-                fechaDesde, fechaHasta
+                fechaDesde,
+                fechaHasta,
+                fechaDesde,
+                fechaHasta
             ]);
 
             // 5. Comparación entre ventas minoristas y mayoristas.
@@ -181,8 +185,7 @@ module.exports = function (db) {
             };
 
             // 6. Compradores más recurrentes.
-            // Se agrupan por cliente y tipo de venta.
-            const [compradoresFrecuentes] = await db.query(`
+            const resultadoCompradores = await db.query(`
                 SELECT
                     comprador,
                     nombre,
@@ -204,8 +207,8 @@ module.exports = function (db) {
                     FROM ventas v
                     INNER JOIN clientes c
                         ON c.id_clientes = v.id_cliente
-                    WHERE v.fecha_vente >= ?
-                      AND v.fecha_vente < DATE_ADD(?, INTERVAL 1 DAY)
+                    WHERE v.fecha_vente >= $1::date
+                      AND v.fecha_vente < ($2::date + INTERVAL '1 day')
 
                     UNION ALL
 
@@ -222,75 +225,75 @@ module.exports = function (db) {
                     FROM ventas_minoristas vm
                     INNER JOIN clientes_minoristas cm
                         ON cm.id_cliente_minorista = vm.id_cliente_minorista
-                    WHERE vm.fecha_venta >= ?
-                      AND vm.fecha_venta < DATE_ADD(?, INTERVAL 1 DAY)
+                    WHERE vm.fecha_venta >= $3::date
+                      AND vm.fecha_venta < ($4::date + INTERVAL '1 day')
                 ) AS historial_compradores
                 GROUP BY comprador, nombre, tipo
                 ORDER BY cantidad_compras DESC, total_comprado DESC
                 LIMIT 10
             `, [
-                fechaDesde, fechaHasta,
-                fechaDesde, fechaHasta
+                fechaDesde,
+                fechaHasta,
+                fechaDesde,
+                fechaHasta
             ]);
 
-                            
-                // 7. Últimas 8 ventas del período seleccionado.
-                const [ultimasVentas] = await db.query(`
-                    SELECT *
-                    FROM (
-                        SELECT
-                            v.id_venta_minorista AS id,
-                            v.numero_comprobante,
-                            v.fecha_venta AS fecha,
-                            v.total_venta,
-                            v.monto_pagado AS pagado,
-                            v.estado_pago,
-                            CONCAT_WS(
-                                ' ',
-                                c.nombre_cliente,
-                                c.apellido_cliente
-                            ) AS comprador,
-                            'MINORISTA' AS tipo
-                        FROM ventas_minoristas v
-                        LEFT JOIN clientes_minoristas c
-                            ON c.id_cliente_minorista = v.id_cliente_minorista
-                        WHERE v.fecha_venta >= ?
-                        AND v.fecha_venta < DATE_ADD(?, INTERVAL 1 DAY)
+            // 7. Últimas 8 ventas del período seleccionado.
+            const resultadoUltimasVentas = await db.query(`
+                SELECT *
+                FROM (
+                    SELECT
+                        v.id_venta_minorista AS id,
+                        v.numero_comprobante,
+                        v.fecha_venta AS fecha,
+                        v.total_venta,
+                        v.monto_pagado AS pagado,
+                        v.estado_pago,
+                        CONCAT_WS(
+                            ' ',
+                            c.nombre_cliente,
+                            c.apellido_cliente
+                        ) AS comprador,
+                        'MINORISTA' AS tipo
+                    FROM ventas_minoristas v
+                    LEFT JOIN clientes_minoristas c
+                        ON c.id_cliente_minorista = v.id_cliente_minorista
+                    WHERE v.fecha_venta >= $1::date
+                      AND v.fecha_venta < ($2::date + INTERVAL '1 day')
 
-                        UNION ALL
+                    UNION ALL
 
-                        SELECT
-                            v.id_venta AS id,
-                            CONCAT('MAY-', v.id_venta) AS numero_comprobante,
-                            v.fecha_vente AS fecha,
-                            v.total_venta,
-                            v.pago_acumulado AS pagado,
-                            v.estado_pago,
-                            CONCAT_WS(
-                                ' ',
-                                c.nombre_cliente,
-                                c.apellido_cliente
-                            ) AS comprador,
-                            'MAYORISTA' AS tipo
-                        FROM ventas v
-                        LEFT JOIN clientes c
-                            ON c.id_clientes = v.id_cliente
-                        WHERE v.fecha_vente >= ?
-                        AND v.fecha_vente < DATE_ADD(?, INTERVAL 1 DAY)
+                    SELECT
+                        v.id_venta AS id,
+                        CONCAT('MAY-', v.id_venta) AS numero_comprobante,
+                        v.fecha_vente AS fecha,
+                        v.total_venta,
+                        v.pago_acumulado AS pagado,
+                        v.estado_pago,
+                        CONCAT_WS(
+                            ' ',
+                            c.nombre_cliente,
+                            c.apellido_cliente
+                        ) AS comprador,
+                        'MAYORISTA' AS tipo
+                    FROM ventas v
+                    LEFT JOIN clientes c
+                        ON c.id_clientes = v.id_cliente
+                    WHERE v.fecha_vente >= $3::date
+                      AND v.fecha_vente < ($4::date + INTERVAL '1 day')
 
-                    ) AS historial
-                    ORDER BY fecha DESC
-                    LIMIT 8
-                `, [
-                    fechaDesde,
-                    fechaHasta,
-                    fechaDesde,
-                    fechaHasta
-                ]);
-
+                ) AS historial
+                ORDER BY fecha DESC
+                LIMIT 8
+            `, [
+                fechaDesde,
+                fechaHasta,
+                fechaDesde,
+                fechaHasta
+            ]);
 
             // 8. Productos que necesitan reposición.
-            const [stockBajo] = await db.query(`
+            const resultadoStockBajo = await db.query(`
                 SELECT
                     id_producto,
                     nombre_producto,
@@ -332,16 +335,21 @@ module.exports = function (db) {
                     total_cobrado: totalCobrado,
                     pendiente_cobro: totalVendido - totalCobrado,
 
-                    total_productos: Number(inventario[0].total_productos),
-                    productos_agotados: Number(inventario[0].productos_agotados),
-                    productos_stock_bajo: Number(inventario[0].productos_stock_bajo)
+                    total_productos: Number(inventario.total_productos),
+                    productos_agotados: Number(inventario.productos_agotados),
+                    productos_stock_bajo: Number(inventario.productos_stock_bajo)
                 },
 
                 ventas_por_tipo: ventasPorTipo,
 
-                evolucion,
+                evolucion: resultadoEvolucion.rows.map(item => ({
+                    fecha: item.fecha,
+                    ventas: Number(item.ventas),
+                    ingresos: Number(item.ingresos),
+                    cantidad_ventas: Number(item.cantidad_ventas)
+                })),
 
-                compradores_frecuentes: compradoresFrecuentes.map(c => ({
+                compradores_frecuentes: resultadoCompradores.rows.map(c => ({
                     comprador: c.comprador,
                     nombre: c.nombre,
                     tipo: c.tipo,
@@ -350,9 +358,9 @@ module.exports = function (db) {
                     ultima_compra: c.ultima_compra
                 })),
 
-                ultimas_ventas: ultimasVentas,
+                ultimas_ventas: resultadoUltimasVentas.rows,
 
-                stock_bajo: stockBajo
+                stock_bajo: resultadoStockBajo.rows
             });
 
         } catch (error) {

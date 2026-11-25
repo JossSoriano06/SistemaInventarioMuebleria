@@ -1,3 +1,4 @@
+
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -9,37 +10,37 @@ module.exports = function (db) {
         try {
             const { nombre_usuario, password } = req.body;
 
-            // Validar datos recibidos
+            // 1. Validar datos recibidos
             if (!nombre_usuario || !password) {
                 return res.status(400).json({
                     message: 'Usuario y contraseña son obligatorios'
                 });
             }
 
-            // Buscar usuario en la base de datos
-            const [rows] = await db.query(
-                `SELECT 
+            // 2. Buscar usuario en PostgreSQL
+            const resultado = await db.query(
+                `SELECT
                     id_usuario,
                     nombre_usuario,
                     password,
                     nombre_completo,
                     rol
                  FROM usuarios
-                 WHERE nombre_usuario = ?
+                 WHERE nombre_usuario = $1
                  LIMIT 1`,
                 [nombre_usuario]
             );
 
-            // Usuario no encontrado
-            if (rows.length === 0) {
+            // 3. Usuario no encontrado
+            if (resultado.rows.length === 0) {
                 return res.status(401).json({
                     message: 'Usuario o contraseña incorrectos'
                 });
             }
 
-            const usuario = rows[0];
+            const usuario = resultado.rows[0];
 
-            // Comparar contraseña ingresada con el hash
+            // 4. Comparar contraseña con el hash bcrypt
             const passwordCorrecta = await bcrypt.compare(
                 password,
                 usuario.password
@@ -51,7 +52,7 @@ module.exports = function (db) {
                 });
             }
 
-            // Crear JWT
+            // 5. Generar JWT
             const token = jwt.sign(
                 {
                     id_usuario: usuario.id_usuario,
@@ -64,8 +65,8 @@ module.exports = function (db) {
                 }
             );
 
-            // Respuesta al Frontend
-            res.json({
+            // 6. Responder al frontend
+            return res.json({
                 message: 'Login correcto',
                 token,
                 usuario: {
@@ -79,7 +80,7 @@ module.exports = function (db) {
         } catch (error) {
             console.error('Error en login:', error);
 
-            res.status(500).json({
+            return res.status(500).json({
                 message: 'Error interno del servidor'
             });
         }

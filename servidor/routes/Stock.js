@@ -4,8 +4,7 @@ const express = require('express');
 module.exports = function (db) {
     const router = express.Router();
 
-    // Validar que la cantidad sea un número entero positivo
-
+    // Validar que la cantidad sea un número entero positivo.
     function validarCantidad(cantidad) {
         return (
             Number.isInteger(Number(cantidad)) &&
@@ -24,22 +23,21 @@ module.exports = function (db) {
         );
     }
 
-    async function obtenerProductoBloqueado(connection, idProducto) {
-        const [productos] = await connection.query(
+    // Obtener producto y bloquear su registro durante la transacción.
+    async function obtenerProductoBloqueado(client, idProducto) {
+        const resultado = await client.query(
             `SELECT id_producto, nombre_producto, stock
              FROM productos
-             WHERE id_producto = ?
+             WHERE id_producto = $1
              FOR UPDATE`,
             [idProducto]
         );
 
-        return productos[0] || null;
+        return resultado.rows[0] || null;
     }
 
-    async function registrarMovimiento(
-        connection,
-        datos
-    ) {
+    // Registrar movimiento en el historial.
+    async function registrarMovimiento(client, datos) {
         const {
             id_producto,
             tipo_movimiento,
@@ -50,7 +48,7 @@ module.exports = function (db) {
             id_usuario
         } = datos;
 
-        await connection.query(
+        await client.query(
             `INSERT INTO movimientos_stock (
                 id_producto,
                 tipo_movimiento,
@@ -59,7 +57,7 @@ module.exports = function (db) {
                 stock_resultante,
                 motivo,
                 id_usuario
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
             [
                 id_producto,
                 tipo_movimiento,
@@ -72,12 +70,32 @@ module.exports = function (db) {
         );
     }
 
+    // Ejecutar operaciones utilizando una transacción PostgreSQL.
+    async function ejecutarTransaccion(operacion) {
+        const client = await db.connect();
 
-    //consultar inventario de todos los productos 
+        try {
+            await client.query('BEGIN');
 
+            const resultado = await operacion(client);
+
+            await client.query('COMMIT');
+
+            return resultado;
+
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+
+        } finally {
+            client.release();
+        }
+    }
+
+    // CONSULTAR INVENTARIO DE TODOS LOS PRODUCTOS.
     router.get('/', async (req, res) => {
         try {
-            const [productos] = await db.query(`
+            const resultado = await db.query(`
                 SELECT
                     id_producto AS id,
                     nombre_producto AS nombre,
@@ -96,7 +114,7 @@ module.exports = function (db) {
                 ORDER BY nombre_producto ASC
             `);
 
-            res.json(productos);
+            res.json(resultado.rows);
 
         } catch (error) {
             console.error('Error al consultar inventario:', error);
@@ -107,9 +125,7 @@ module.exports = function (db) {
         }
     });
 
-
-    //registrar stock inicial de un producto 
-
+    // REGISTRAR STOCK INICIAL DE UN PRODUCTO.
     router.post('/inicial', async (req, res) => {
         try {
             const {
@@ -128,12 +144,10 @@ module.exports = function (db) {
                 });
             }
 
-            await db.beginTransaction();
-
-            try {
+            const resultado = await ejecutarTransaccion(async (client) => {
                 const producto = await obtenerProductoBloqueado(
-                    db,
-                    id_producto
+                    client,
+                    Number(id_producto)
                 );
 
                 if (!producto) {
@@ -146,16 +160,16 @@ module.exports = function (db) {
                     );
                 }
 
-                const [movimientosIniciales] = await db.query(
+                const movimientosIniciales = await client.query(
                     `SELECT id_movimiento
                      FROM movimientos_stock
-                     WHERE id_producto = ?
+                     WHERE id_producto = $1
                        AND tipo_movimiento = 'INICIAL'
                      LIMIT 1`,
                     [id_producto]
                 );
 
-                if (movimientosIniciales.length > 0) {
+                if (movimientosIniciales.rows.length > 0) {
                     throw new Error(
                         'Ya se registró el stock inicial de este producto.'
                     );
@@ -164,15 +178,15 @@ module.exports = function (db) {
                 const cantidadNueva = Number(cantidad);
                 const stockAnterior = Number(producto.stock);
 
-                await db.query(
+                await client.query(
                     `UPDATE productos
-                     SET stock = ?
-                     WHERE id_producto = ?`,
+                     SET stock = $1
+                     WHERE id_producto = $2`,
                     [cantidadNueva, id_producto]
                 );
 
-                await registrarMovimiento(db, {
-                    id_producto,
+                await registrarMovimiento(client, {
+                    id_producto: Number(id_producto),
                     tipo_movimiento: 'INICIAL',
                     cantidad: cantidadNueva,
                     stock_anterior: stockAnterior,
@@ -181,20 +195,18 @@ module.exports = function (db) {
                     id_usuario: obtenerIdUsuario(req)
                 });
 
-                await db.commit();
-
-                res.status(201).json({
-                    mensaje: 'Stock inicial registrado correctamente.',
+                return {
                     producto: producto.nombre_producto,
                     stock_anterior: stockAnterior,
                     cantidad_ingresada: cantidadNueva,
                     stock_actual: cantidadNueva
-                });
+                };
+            });
 
-            } catch (error) {
-                await db.rollback();
-                throw error;
-            }
+            res.status(201).json({
+                mensaje: 'Stock inicial registrado correctamente.',
+                ...resultado
+            });
 
         } catch (error) {
             console.error('Error al registrar stock inicial:', error);
@@ -205,9 +217,7 @@ module.exports = function (db) {
         }
     });
 
-
-    // registrar entrada de stock 
-
+    // REGISTRAR ENTRADA DE STOCK.
     router.post('/entrada', async (req, res) => {
         try {
             const {
@@ -226,12 +236,10 @@ module.exports = function (db) {
                 });
             }
 
-            await db.beginTransaction();
-
-            try {
+            const resultado = await ejecutarTransaccion(async (client) => {
                 const producto = await obtenerProductoBloqueado(
-                    db,
-                    id_producto
+                    client,
+                    Number(id_producto)
                 );
 
                 if (!producto) {
@@ -242,15 +250,15 @@ module.exports = function (db) {
                 const stockAnterior = Number(producto.stock);
                 const stockNuevo = stockAnterior + cantidadEntrada;
 
-                await db.query(
+                await client.query(
                     `UPDATE productos
-                     SET stock = ?
-                     WHERE id_producto = ?`,
+                     SET stock = $1
+                     WHERE id_producto = $2`,
                     [stockNuevo, id_producto]
                 );
 
-                await registrarMovimiento(db, {
-                    id_producto,
+                await registrarMovimiento(client, {
+                    id_producto: Number(id_producto),
                     tipo_movimiento: 'ENTRADA',
                     cantidad: cantidadEntrada,
                     stock_anterior: stockAnterior,
@@ -259,20 +267,18 @@ module.exports = function (db) {
                     id_usuario: obtenerIdUsuario(req)
                 });
 
-                await db.commit();
-
-                res.status(201).json({
-                    mensaje: 'Entrada de stock registrada correctamente.',
+                return {
                     producto: producto.nombre_producto,
                     stock_anterior: stockAnterior,
                     cantidad_ingresada: cantidadEntrada,
                     stock_actual: stockNuevo
-                });
+                };
+            });
 
-            } catch (error) {
-                await db.rollback();
-                throw error;
-            }
+            res.status(201).json({
+                mensaje: 'Entrada de stock registrada correctamente.',
+                ...resultado
+            });
 
         } catch (error) {
             console.error('Error al registrar entrada:', error);
@@ -283,9 +289,7 @@ module.exports = function (db) {
         }
     });
 
-
-    //registrar salida de stock 
-
+    // REGISTRAR SALIDA DE STOCK.
     router.post('/salida', async (req, res) => {
         try {
             const {
@@ -310,12 +314,10 @@ module.exports = function (db) {
                 });
             }
 
-            await db.beginTransaction();
-
-            try {
+            const resultado = await ejecutarTransaccion(async (client) => {
                 const producto = await obtenerProductoBloqueado(
-                    db,
-                    id_producto
+                    client,
+                    Number(id_producto)
                 );
 
                 if (!producto) {
@@ -333,15 +335,15 @@ module.exports = function (db) {
 
                 const stockNuevo = stockAnterior - cantidadSalida;
 
-                await db.query(
+                await client.query(
                     `UPDATE productos
-                     SET stock = ?
-                     WHERE id_producto = ?`,
+                     SET stock = $1
+                     WHERE id_producto = $2`,
                     [stockNuevo, id_producto]
                 );
 
-                await registrarMovimiento(db, {
-                    id_producto,
+                await registrarMovimiento(client, {
+                    id_producto: Number(id_producto),
                     tipo_movimiento: 'SALIDA',
                     cantidad: cantidadSalida,
                     stock_anterior: stockAnterior,
@@ -350,20 +352,18 @@ module.exports = function (db) {
                     id_usuario: obtenerIdUsuario(req)
                 });
 
-                await db.commit();
-
-                res.status(201).json({
-                    mensaje: 'Salida de stock registrada correctamente.',
+                return {
                     producto: producto.nombre_producto,
                     stock_anterior: stockAnterior,
                     cantidad_retirada: cantidadSalida,
                     stock_actual: stockNuevo
-                });
+                };
+            });
 
-            } catch (error) {
-                await db.rollback();
-                throw error;
-            }
+            res.status(201).json({
+                mensaje: 'Salida de stock registrada correctamente.',
+                ...resultado
+            });
 
         } catch (error) {
             console.error('Error al registrar salida:', error);
@@ -374,12 +374,10 @@ module.exports = function (db) {
         }
     });
 
-
-    //historial general de movimientos 
-
+    // HISTORIAL GENERAL DE MOVIMIENTOS.
     router.get('/movimientos', async (req, res) => {
         try {
-            const [movimientos] = await db.query(`
+            const resultado = await db.query(`
                 SELECT
                     m.id_movimiento,
                     m.tipo_movimiento,
@@ -396,11 +394,12 @@ module.exports = function (db) {
                     ON m.id_producto = p.id_producto
                 LEFT JOIN usuarios u
                     ON m.id_usuario = u.id_usuario
-                ORDER BY m.fecha_movimiento DESC,
-                         m.id_movimiento DESC
+                ORDER BY
+                    m.fecha_movimiento DESC,
+                    m.id_movimiento DESC
             `);
 
-            res.json(movimientos);
+            res.json(resultado.rows);
 
         } catch (error) {
             console.error('Error al consultar movimientos:', error);
@@ -411,9 +410,7 @@ module.exports = function (db) {
         }
     });
 
-
-    // Historial de movimientos de un producto específico
-
+    // HISTORIAL DE MOVIMIENTOS DE UN PRODUCTO ESPECÍFICO.
     router.get('/:id/movimientos', async (req, res) => {
         try {
             const idProducto = Number(req.params.id);
@@ -424,7 +421,7 @@ module.exports = function (db) {
                 });
             }
 
-            const [movimientos] = await db.query(
+            const resultado = await db.query(
                 `SELECT
                     m.id_movimiento,
                     m.tipo_movimiento,
@@ -437,13 +434,14 @@ module.exports = function (db) {
                  FROM movimientos_stock m
                  LEFT JOIN usuarios u
                     ON m.id_usuario = u.id_usuario
-                 WHERE m.id_producto = ?
-                 ORDER BY m.fecha_movimiento DESC,
-                          m.id_movimiento DESC`,
+                 WHERE m.id_producto = $1
+                 ORDER BY
+                    m.fecha_movimiento DESC,
+                    m.id_movimiento DESC`,
                 [idProducto]
             );
 
-            res.json(movimientos);
+            res.json(resultado.rows);
 
         } catch (error) {
             console.error('Error al consultar movimientos del producto:', error);
@@ -453,7 +451,6 @@ module.exports = function (db) {
             });
         }
     });
-
 
     return router;
 };
