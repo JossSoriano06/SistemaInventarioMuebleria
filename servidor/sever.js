@@ -13,7 +13,8 @@ const app = express();
 app.use(express.json());
 
 const allowedOrigins = [
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'https://sistema-inventario-muebleria.vercel.app'
 ];
 
 app.use(cors({
