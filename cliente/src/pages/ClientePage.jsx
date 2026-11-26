@@ -224,36 +224,7 @@ function ClientePage() {
     });
 };
 
-  const procesarVentaFinal = async () => {
-    if (!selectedClient) return alert('Seleccione cliente');
-    if (cart.length === 0) return alert('Carrito vacío');
-
-    setLoading(true);
-
-    try {
-        const productos = cart.map(p => ({
-            id_producto: p.id_producto,
-            color: p.color, 
-            cantidad: Number(p.cantidad),
-            precio: Number(p.precio)
-        }));
-
-        await axios.post(
-            `${API_URL_CLIENTES}/${selectedClient.id_clientes}/ventas`,
-            { productos }
-        );
-
-        alert('Venta registrada correctamente');
-        setCart([]);
-        setView('LISTA_CLIENTES');
-
-    } catch (error) {
-        console.error(error);
-        alert('Error al procesar venta');
-    } finally {
-        setLoading(false);
-    }
-};
+  
     // Nueva función para procesar venta con pago inicial
     const totalCarrito = cart.reduce((acc, item) => acc + (item.cantidad * item.precio), 0);
     const handleFinalizarVenta = async () => {
@@ -815,8 +786,7 @@ const handleRegistrarAbono = async (monto) => {
 
                             {clientSales.map(v => {
                                 const total = Number(v.total_venta);
-                                const pagado = Number(v.pago_acumulado || 0);
-                                const saldo = total - pagado;
+                                
 
                                 return (
                                     <tr

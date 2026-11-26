@@ -3,8 +3,6 @@ import {
     MdHome,
     MdInventory,
     MdPointOfSale,
-    MdPeople,
-    MdHistory,
     MdWarehouse
 } from 'react-icons/md';
 

@@ -32,15 +32,13 @@ const Dashboard = () => {
     const [datos, setDatos] = useState(null);
 
     const [cargando, setCargando] = useState(true);
-    const [actualizando, setActualizando] = useState(false);
+    
     const [error, setError] = useState('');
 
     const [periodo, setPeriodo] = useState('dia');
 
     const [desde, setDesde] = useState('');
     const [hasta, setHasta] = useState('');
-
-    const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
 
     const navigate = useNavigate();
 
@@ -96,7 +94,7 @@ const irARegistrarStock = (idProducto) => {
         const respuesta = await obtenerResumenDashboard(filtros);
 
         setDatos(respuesta);
-        setUltimaActualizacion(new Date());
+        
 
     } catch (error) {
         console.error('Error al cargar dashboard:', error);
@@ -359,7 +357,7 @@ const irARegistrarStock = (idProducto) => {
                                     !desde ||
                                     !hasta ||
                                     desde > hasta ||
-                                    actualizando
+                                    cargando
                                 }
                                 className="bg-indigo-600 text-white rounded-lg px-5 py-2.5 text-sm font-semibold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
                             >

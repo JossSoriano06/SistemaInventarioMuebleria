@@ -24,7 +24,7 @@ const SalesChart = ({ datos = [] }) => {
             return 'Fecha inválida';
         }
 
-        const [anio, mes, dia] = partes;
+        const [, mes, dia] = partes;
 
         return `${dia}/${mes}`;
     };
