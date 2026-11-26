@@ -275,29 +275,57 @@ function ClientePage() {
     }
 };
 //funcion para ver nuevo abono 
+
 const handleRegistrarAbono = async (monto) => {
-    if (!monto || monto <= 0) return alert("Ingrese un monto válido");
+    if (!monto || monto <= 0) {
+        return alert("Ingrese un monto válido");
+    }
 
     try {
-        const res = await axios.post(`${API_URL_CLIENTES}/ventas/${selectedSale.id_venta}/abono`, {
-            monto_abono: Number(monto)
-        });
+        const res = await axios.post(
+            `${API_URL_CLIENTES}/ventas/${selectedSale.id_venta}/abono`,
+            {
+                monto_abono: Number(monto)
+            }
+        );
+
+        // Consultar nuevamente el historial actualizado desde el backend
+        const historialRes = await axios.get(
+            `${API_URL_CLIENTES}/${selectedClient.id_clientes}/ventas`
+        );
+
+        // Actualizar la tabla del historial
+        setClientSales(historialRes.data);
+
+        // Buscar la venta actualizada en el historial
+        const ventaActualizada = historialRes.data.find(
+            venta => Number(venta.id_venta) === Number(selectedSale.id_venta)
+        );
+
+        // Actualizar también el detalle de la venta
+        if (ventaActualizada) {
+            setSelectedSale(ventaActualizada);
+        } else {
+            setSelectedSale(prev => ({
+                ...prev,
+                pago_acumulado: res.data.nuevoPagoAcumulado
+            }));
+        }
+
+        // Limpiar el campo de abono
+        document.getElementById('inputAbono').value = '';
 
         alert(res.data.message);
 
-        // Actualizamos el estado local para que el "Saldo Pendiente" se vea reflejado
-        setSelectedSale({
-            ...selectedSale,
-            pago_acumulado: res.data.nuevoPagoAcumulado
-        });
-
-        // Limpiar el input
-        document.getElementById('inputAbono').value = '';
-
     } catch (error) {
-        alert(error.response?.data?.message || "Error al registrar abono");
+        console.error("Error al registrar abono:", error);
+        alert(
+            error.response?.data?.message ||
+            "Error al registrar abono"
+        );
     }
 };
+
 
     
 
