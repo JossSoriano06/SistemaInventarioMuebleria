@@ -15,8 +15,7 @@ import {
     MdCalendarToday,
     MdPayments,
     MdCheckCircle,
-    MdError,
-    MdHistory
+    MdError
 } from 'react-icons/md';
 
 const BASE_URL = process.env.REACT_APP_API_URL;

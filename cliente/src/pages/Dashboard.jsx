@@ -9,8 +9,7 @@ import {
     Package,
     PackageX,
     AlertTriangle,
-    CalendarDays,
-    BarChart3
+    CalendarDays
 } from 'lucide-react';
 
 import { obtenerResumenDashboard } from '../services/dashboardService';

@@ -11,7 +11,6 @@ import {
     MdRemove,
     MdDelete,
     MdPointOfSale,
-    MdReceipt,
     MdHistory,
     MdCheckCircle,
     MdError,

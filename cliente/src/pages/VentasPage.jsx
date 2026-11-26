@@ -7,8 +7,7 @@ import {
     MdStore,
     MdGroups,
     MdArrowForward,
-    MdShoppingCart,
-    MdHistory
+    MdShoppingCart
 } from 'react-icons/md';
 
 function VentasPage() {

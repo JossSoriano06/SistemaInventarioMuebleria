@@ -8,8 +8,7 @@ import {
   MdCalculate,
   MdBarChart,
   MdCheck,
-  MdClose,
-  MdDelete
+  MdClose
 } from 'react-icons/md';
 
 const API_URL = `${process.env.REACT_APP_API_URL}/api/productos`;
@@ -39,10 +38,11 @@ function Producto() {
   const [loadingConfig, setLoadingConfig] = useState(false);
 
   const [modal, setModal] = useState(null);
-  const [confirmacion, setConfirmacion] = useState('');
+  const [, setConfirmacion] = useState('');
 
   const dinero = (valor) =>
     `S/. ${Number(valor || 0).toFixed(2)}`;
+  
 
   const obtenerError = (err) => {
     if (err.response?.status === 401) {
