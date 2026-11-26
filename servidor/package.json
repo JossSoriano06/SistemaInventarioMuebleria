@@ -4,8 +4,8 @@
   "description": "Backend Sistema de Inventario Mueblería El Márquez",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js"
+    "start": "node sever.js",
+    "dev": "node --watch sever.js"
   },
   "keywords": [],
   "author": "",
