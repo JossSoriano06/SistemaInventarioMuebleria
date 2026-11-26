@@ -1,7 +1,10 @@
 
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3004/api/dashboard';
+
+const BASE_URL = process.env.REACT_APP_API_URL;
+
+const API_URL = `${BASE_URL}/api/dashboard`;
 
 export const obtenerResumenDashboard = async (filtros = {}) => {
     try {
