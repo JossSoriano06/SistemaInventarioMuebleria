@@ -19,7 +19,7 @@ import {
     MdHistory
 } from 'react-icons/md';
 
-const BASE_URL = 'http://localhost:3004';
+const BASE_URL = process.env.REACT_APP_API_URL;
 
 function HistorialMenor() {
 

@@ -12,8 +12,8 @@ import {
   MdDelete
 } from 'react-icons/md';
 
-const API_URL = 'http://localhost:3004/api/productos';
-const CONFIG_URL = 'http://localhost:3004/api/configuracion-precios';
+const API_URL = `${process.env.REACT_APP_API_URL}/api/productos`;
+const CONFIG_URL = `${process.env.REACT_APP_API_URL}/api/configuracion-precios`;
 
 const FORM_INICIAL = {
   nombre: '',

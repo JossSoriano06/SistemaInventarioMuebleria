@@ -18,8 +18,8 @@ import {
     MdTune
 } from 'react-icons/md';
 
-const API_URL = 'http://localhost:3004/api/stock';
-const PRODUCTOS_API_URL = 'http://localhost:3004/api/productos';
+const API_URL = `${process.env.REACT_APP_API_URL}/api/stock`;
+const PRODUCTOS_API_URL = `${process.env.REACT_APP_API_URL}/api/productos`;
 
 function StockPage() {
 

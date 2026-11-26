@@ -13,7 +13,7 @@ import {
     Receipt
 } from 'lucide-react';
 
-const BASE_URL = 'http://localhost:3004';
+const BASE_URL = process.env.REACT_APP_API_URL;
 
 const API_URL_CLIENTES = `${BASE_URL}/api/clientes`;
 const API_URL_PRODUCTOS = `${BASE_URL}/api/productos`;
