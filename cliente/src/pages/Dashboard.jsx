@@ -25,9 +25,9 @@ import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
 
-    // ==========================================
+    
     // ESTADOS
-    // ==========================================
+   
 
     const [datos, setDatos] = useState(null);
 
@@ -49,9 +49,9 @@ const irARegistrarStock = (idProducto) => {
 };
 
 
-    // ==========================================
+    
     // FORMATO DE MONEDA
-    // ==========================================
+    
 
     const formatoMoneda = (valor) => {
 
@@ -65,9 +65,9 @@ const irARegistrarStock = (idProducto) => {
     };
 
 
-    // ==========================================
+    
     // CARGAR INFORMACIÓN DEL DASHBOARD
-    // ==========================================
+    
 
     const cargarDashboard = useCallback(async () => {
     try {
@@ -109,9 +109,9 @@ const irARegistrarStock = (idProducto) => {
     }
 }, [periodo, desde, hasta]);
 
-    // ==========================================
+    
     // CARGA INICIAL Y CAMBIO DE FILTRO
-    // ==========================================
+    
 
     useEffect(() => {
     if (periodo !== 'personalizado') {
@@ -120,9 +120,9 @@ const irARegistrarStock = (idProducto) => {
 }, [periodo, cargarDashboard]);
 
 
-    // ==========================================
+    
     // APLICAR FILTRO PERSONALIZADO
-    // ==========================================
+    
 
     const aplicarFiltroPersonalizado = () => {
 
@@ -131,9 +131,9 @@ const irARegistrarStock = (idProducto) => {
     };
 
 
-    // ==========================================
+    
     // TARJETA DE INDICADORES
-    // ==========================================
+    
 
     const TarjetaIndicador = ({
         titulo,
@@ -174,9 +174,9 @@ const irARegistrarStock = (idProducto) => {
     );
 
 
-    // ==========================================
+    
     // ESTADO DE CARGA INICIAL
-    // ==========================================
+   
 
     if (cargando && !datos) {
 
@@ -200,9 +200,9 @@ const irARegistrarStock = (idProducto) => {
     }
 
 
-    // ==========================================
+   
     // ERROR SIN DATOS
-    // ==========================================
+    
 
     if (error && !datos) {
 
@@ -241,16 +241,15 @@ const irARegistrarStock = (idProducto) => {
     }
 
 
-    // ==========================================
+    
     // INDICADORES
-    // ==========================================
-
+   
     const indicadores = datos?.indicadores || {};
 
 
-    // ==========================================
+    
     // INTERFAZ PRINCIPAL
-    // ==========================================
+    
 
     return (
 
@@ -259,9 +258,8 @@ const irARegistrarStock = (idProducto) => {
 
             
 
-            {/* ==================================
-                FILTROS
-            ================================== */}
+            {/*          FILTROS
+            */}
 
             <div className="bg-white border border-slate-200 rounded-xl p-5 mb-6 shadow-sm">
 
@@ -380,9 +378,8 @@ const irARegistrarStock = (idProducto) => {
             
 
 
-            {/* ==================================
-                INDICADORES COMERCIALES
-            ================================== */}
+            {/*          INDICADORES COMERCIALES
+            */}
 
             <div className="mb-3">
 
@@ -434,9 +431,8 @@ const irARegistrarStock = (idProducto) => {
             </div>
 
 
-            {/* ==================================
-                INDICADORES DE INVENTARIO
-            ================================== */}
+            {/*          INDICADORES DE INVENTARIO
+            */}
 
             <div className="mb-3">
 
@@ -479,9 +475,8 @@ const irARegistrarStock = (idProducto) => {
 
             </div>
 
-            {/* ==================================
-                ALERTAS DE INVENTARIO
-            ================================== */}
+            {/*          ALERTAS DE INVENTARIO
+            */}
 
             <div className="mb-7">
 
@@ -493,9 +488,8 @@ const irARegistrarStock = (idProducto) => {
             </div>
 
 
-            {/* ==================================
-                GRÁFICOS
-            ================================== */}
+            {/*          GRÁFICOS
+            */}
 
             <div className="mb-3">
 
@@ -523,9 +517,8 @@ const irARegistrarStock = (idProducto) => {
             </div>
 
 
-            {/* ==================================
-                COMPRADORES FRECUENTES
-            ================================== */}
+            {/*          COMPRADORES FRECUENTES
+            */}
 
             <div className="mb-7">
 
@@ -536,9 +529,8 @@ const irARegistrarStock = (idProducto) => {
             </div>
 
 
-            {/* ==================================
-                ÚLTIMAS VENTAS
-            ================================== */}
+            {/*          ÚLTIMAS VENTAS
+            */}
 
             <div className="mb-7">
 
@@ -547,9 +539,7 @@ const irARegistrarStock = (idProducto) => {
                 />
 
             </div>
-
-
-            
+         
 
 
             

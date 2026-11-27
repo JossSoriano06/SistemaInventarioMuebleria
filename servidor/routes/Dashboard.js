@@ -39,10 +39,12 @@ module.exports = function (db) {
                 });
             }
 
-            // Obtener la fecha actual desde PostgreSQL.
-            const resultadoFecha = await db.query(`
-                SELECT CURRENT_DATE::text AS hoy
-            `);
+            // Obtener la fecha actual según la zona horaria de Perú.
+                const resultadoFecha = await db.query(`
+                    SELECT (NOW() AT TIME ZONE 'America/Lima')::date::text AS hoy
+                `);
+
+
 
             const hoy = resultadoFecha.rows[0].hoy;
 
