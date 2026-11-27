@@ -315,15 +315,20 @@ module.exports = function (db) {
                 // 6. Registrar cabecera de venta.
                 const venta = await client.query(
                     `INSERT INTO ventas_minoristas (
-                        numero_comprobante,
-                        id_cliente_minorista,
-                        total_venta,
-                        monto_pagado,
-                        metodo_pago,
-                        estado_pago
-                    )
-                    VALUES ($1, $2, $3, $4, $5, 'CANCELADO')
-                    RETURNING id_venta_minorista`,
+                            numero_comprobante,
+                            fecha_venta,
+                            id_cliente_minorista,
+                            total_venta,
+                            monto_pagado,
+                            metodo_pago,
+                            estado_pago
+                        )
+                        VALUES (
+                            $1,
+                            timezone('America/Lima', now()),
+                            $2, $3, $4, $5, 'CANCELADO'
+                        )
+                        RETURNING id_venta_minorista, fecha_venta`,
                     [
                         numeroComprobante,
                         idCliente,
@@ -334,6 +339,8 @@ module.exports = function (db) {
                 );
 
                 const idVenta = venta.rows[0].id_venta_minorista;
+                const fechaVenta = venta.rows[0].fecha_venta;
+
 
                 // 7. Registrar detalles y descontar stock.
                 for (const producto of productosValidados) {
@@ -390,7 +397,8 @@ module.exports = function (db) {
                         total: totalVenta,
                         monto_pagado: montoPagado,
                         metodo_pago: metodoPago,
-                        estado_pago: 'CANCELADO'
+                        estado_pago: 'CANCELADO',
+                        fecha_venta: fechaVenta
                     }
                 });
 

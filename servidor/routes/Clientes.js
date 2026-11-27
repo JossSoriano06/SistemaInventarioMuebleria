@@ -312,8 +312,11 @@ module.exports = function (db) {
                     pago_acumulado,
                     estado_pago
                 )
-                VALUES (CURRENT_DATE, $1, $2, $3, $4)
-                RETURNING id_venta
+                VALUES (
+                    timezone('America/Lima', now()),
+                    $1, $2, $3, $4
+                )
+                RETURNING id_venta, fecha_vente
             `, [
                 total,
                 idCliente,
@@ -322,6 +325,7 @@ module.exports = function (db) {
             ]);
 
             const idVenta = resultadoVenta.rows[0].id_venta;
+            const fechaVenta = resultadoVenta.rows[0].fecha_vente;
 
             // Registrar detalles de venta
             for (const p of productos) {
@@ -349,7 +353,8 @@ module.exports = function (db) {
 
             res.json({
                 message: 'Venta registrada correctamente',
-                id_venta: idVenta
+                id_venta: idVenta,
+                fecha_venta: fechaVenta
             });
 
         } catch (error) {
