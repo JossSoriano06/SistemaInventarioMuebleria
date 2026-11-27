@@ -55,9 +55,9 @@ function StockPage() {
 
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // =====================================================
+
     // CARGAR INVENTARIO
-    // =====================================================
+
 
     const cargarProductos = async () => {
         try {
@@ -81,9 +81,9 @@ function StockPage() {
         }
     };
 
-    // =====================================================
+
     // CARGAR HISTORIAL GENERAL O INDIVIDUAL
-    // =====================================================
+
 
     const cargarMovimientos = async (idProducto = null) => {
         try {
@@ -111,9 +111,9 @@ function StockPage() {
         }
     };
 
-    // =====================================================
+
     // EFECTOS
-    // =====================================================
+
 
     useEffect(() => {
         cargarProductos();
@@ -125,9 +125,9 @@ function StockPage() {
         }
     }, [vista, productoHistorial]);
 
-    // =====================================================
+
     // ESTADÍSTICAS
-    // =====================================================
+
 
     const estadisticas = useMemo(() => {
 
@@ -158,9 +158,9 @@ function StockPage() {
 
     }, [productos]);
 
-    // =====================================================
+
     // FILTRAR PRODUCTOS
-    // =====================================================
+
 
     const productosFiltrados = useMemo(() => {
 
@@ -195,9 +195,9 @@ function StockPage() {
 
     }, [productos, busqueda, filtro]);
 
-    // =====================================================
+
     // ABRIR MODAL
-    // =====================================================
+
 
     const abrirModal = (tipo, producto) => {
 
@@ -223,9 +223,9 @@ function StockPage() {
         setMostrarModal(true);
     };
 
-    // =====================================================
+
     // SELECCIONAR PRODUCTO DESDE EL DASHBOARD
-    // =====================================================
+
 
     useEffect(() => {
 
@@ -249,9 +249,7 @@ function StockPage() {
             return;
         }
 
-        const tipo = Number(producto.stock) === 0
-            ? 'INICIAL'
-            : 'ENTRADA';
+        const tipo = 'ENTRADA';
 
         abrirModal(tipo, producto);
 
@@ -259,9 +257,9 @@ function StockPage() {
 
     }, [productos, searchParams, setSearchParams]);
 
-    // =====================================================
+
     // CERRAR MODAL
-    // =====================================================
+
 
     const cerrarModal = () => {
 
@@ -283,9 +281,9 @@ function StockPage() {
         });
     };
 
-    // =====================================================
+
     // MANEJAR FORMULARIO
-    // =====================================================
+
 
     const manejarCambio = (e) => {
 
@@ -297,9 +295,9 @@ function StockPage() {
         }));
     };
 
-    // =====================================================
+
     // ACTUALIZAR STOCK MÍNIMO
-    // =====================================================
+
 
     const actualizarStockMinimo = async () => {
 
@@ -359,9 +357,9 @@ function StockPage() {
         }
     };
 
-    // =====================================================
+
     // REGISTRAR MOVIMIENTO DE STOCK
-    // =====================================================
+
 
     const registrarMovimiento = async (e) => {
 
@@ -464,36 +462,36 @@ function StockPage() {
         }
     };
 
-    // =====================================================
+
     // VER HISTORIAL INDIVIDUAL
-    // =====================================================
+
 
     const verHistorialProducto = (producto) => {
         setProductoHistorial(producto);
         setVista('historial');
     };
 
-    // =====================================================
+
     // VER HISTORIAL GENERAL
-    // =====================================================
+
 
     const verHistorialGeneral = () => {
         setProductoHistorial(null);
         setVista('historial');
     };
 
-    // =====================================================
+
     // VOLVER AL INVENTARIO
-    // =====================================================
+
 
     const volverInventario = () => {
         setVista('inventario');
         setProductoHistorial(null);
     };
 
-    // =====================================================
+
     // ESTADO DEL PRODUCTO
-    // =====================================================
+
 
     const obtenerEstado = (producto) => {
 
@@ -523,9 +521,9 @@ function StockPage() {
         };
     };
 
-    // =====================================================
+
     // FORMATO DE FECHA
-    // =====================================================
+
 
     const formatoFecha = (fecha) => {
 
@@ -537,9 +535,9 @@ function StockPage() {
         });
     };
 
-    // =====================================================
+
     // RENDERIZADO
-    // =====================================================
+
 
     return (
 
@@ -837,17 +835,8 @@ function StockPage() {
                                                     <div className="flex justify-center items-center gap-2">
 
                                                         <button
-                                                            onClick={() => abrirModal(
-                                                                Number(producto.stock) === 0
-                                                                    ? 'INICIAL'
-                                                                    : 'ENTRADA',
-                                                                producto
-                                                            )}
-                                                            title={
-                                                                Number(producto.stock) === 0
-                                                                    ? 'Registrar stock inicial'
-                                                                    : 'Agregar stock'
-                                                            }
+                                                            onClick={() => abrirModal('ENTRADA', producto)}
+                                                            title="Agregar o reponer stock"
                                                             className="w-9 h-9 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition"
                                                         >
                                                             <MdAdd size={21} />
@@ -1287,9 +1276,7 @@ function StockPage() {
 
 }
 
-// =====================================================
 // TARJETA DE ESTADÍSTICA
-// =====================================================
 
 function TarjetaEstadistica({
     titulo,
@@ -1383,9 +1370,7 @@ function TarjetaEstadistica({
 
 }
 
-// =====================================================
 // ETIQUETA DE MOVIMIENTO
-// =====================================================
 
 function TipoMovimiento({ tipo }) {
 
